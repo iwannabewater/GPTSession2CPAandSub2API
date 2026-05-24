@@ -29,14 +29,57 @@ const formatDescriptions: Record<OutputFormat, MessageKey> = {
   axonhub: 'formatAxonhub',
   'codex-manager': 'formatCodexManager',
 };
-const formatTips: Record<OutputFormat, [MessageKey, MessageKey]> = {
-  'codex-auth': ['tipCodexAuthFields', 'tipCodexAuthSynthetic'],
-  sub2api: ['tipSub2apiBatch', 'tipSub2apiRefresh'],
-  cpa: ['tipCpaSynthetic', 'tipCpaNoSession'],
-  cockpit: ['tipCockpitFields', 'tipCockpitSynthetic'],
-  '9router': ['tip9routerAccess', 'tip9routerExpiry'],
-  axonhub: ['tipAxonhubRefresh', 'tipAxonhubSynthetic'],
-  'codex-manager': ['tipCodexManagerMeta', 'tipCodexManagerRefresh'],
+const formatNames: Record<OutputFormat, string> = {
+  'codex-auth': 'Codex Auth',
+  sub2api: 'sub2api',
+  cpa: 'CPA',
+  cockpit: 'Cockpit',
+  '9router': '9router',
+  axonhub: 'AxonHub',
+  'codex-manager': 'Codex-Manager',
+};
+type FormatTipTone = 'schema' | 'identity' | 'renewal' | 'batch' | 'privacy' | 'metadata';
+interface FormatTip {
+  readonly title: MessageKey;
+  readonly body: MessageKey;
+  readonly tone: FormatTipTone;
+}
+const formatTips: Record<OutputFormat, readonly FormatTip[]> = {
+  'codex-auth': [
+    { title: 'tipTitleSchema', body: 'tipCodexAuthFields', tone: 'schema' },
+    { title: 'tipTitleIdentity', body: 'tipSharedSynthetic', tone: 'identity' },
+    { title: 'tipTitleRenewal', body: 'tipCodexAuthRenewal', tone: 'renewal' },
+  ],
+  sub2api: [
+    { title: 'tipTitleBatch', body: 'tipSub2apiBatch', tone: 'batch' },
+    { title: 'tipTitleIdentity', body: 'tipSub2apiIdentity', tone: 'identity' },
+    { title: 'tipTitleRenewal', body: 'tipSub2apiRefresh', tone: 'renewal' },
+  ],
+  cpa: [
+    { title: 'tipTitleSchema', body: 'tipCpaFields', tone: 'schema' },
+    { title: 'tipTitleIdentity', body: 'tipSharedSynthetic', tone: 'identity' },
+    { title: 'tipTitlePrivacy', body: 'tipCpaNoSession', tone: 'privacy' },
+  ],
+  cockpit: [
+    { title: 'tipTitleSchema', body: 'tipCockpitFields', tone: 'schema' },
+    { title: 'tipTitleIdentity', body: 'tipSharedSynthetic', tone: 'identity' },
+    { title: 'tipTitleMetadata', body: 'tipCockpitAlignment', tone: 'metadata' },
+  ],
+  '9router': [
+    { title: 'tipTitleSchema', body: 'tip9routerAccess', tone: 'schema' },
+    { title: 'tipTitleIdentity', body: 'tip9routerIdentity', tone: 'identity' },
+    { title: 'tipTitleRenewal', body: 'tip9routerExpiry', tone: 'renewal' },
+  ],
+  axonhub: [
+    { title: 'tipTitleSchema', body: 'tipAxonhubRefresh', tone: 'schema' },
+    { title: 'tipTitleIdentity', body: 'tipSharedSynthetic', tone: 'identity' },
+    { title: 'tipTitleMetadata', body: 'tipAxonhubCompact', tone: 'metadata' },
+  ],
+  'codex-manager': [
+    { title: 'tipTitleMetadata', body: 'tipCodexManagerMeta', tone: 'metadata' },
+    { title: 'tipTitleIdentity', body: 'tipCodexManagerIdentity', tone: 'identity' },
+    { title: 'tipTitleRenewal', body: 'tipCodexManagerRefresh', tone: 'renewal' },
+  ],
 };
 const syntheticFormats: readonly OutputFormat[] = ['codex-auth', 'cpa', 'cockpit', 'axonhub'];
 
@@ -270,10 +313,21 @@ function updateView(elements: Elements, state: AppState): void {
     state.locale,
     formatDescriptions[state.format],
   );
+  elements.formatName.textContent = formatNames[state.format];
   elements.formatTips.replaceChildren(
-    ...formatTips[state.format].map((key) => {
+    ...formatTips[state.format].map((tip) => {
       const item = document.createElement('li');
-      item.textContent = translate(state.locale, key);
+      item.className = 'format-tip';
+      item.dataset.tone = tip.tone;
+      const marker = document.createElement('span');
+      marker.className = 'format-tip-marker';
+      marker.setAttribute('aria-hidden', 'true');
+      const title = document.createElement('strong');
+      title.textContent = translate(state.locale, tip.title);
+      const copy = document.createElement('span');
+      copy.className = 'format-tip-copy';
+      copy.textContent = translate(state.locale, tip.body);
+      item.append(marker, title, copy);
       return item;
     }),
   );
@@ -417,6 +471,7 @@ interface Elements {
   outputStatus: HTMLElement;
   accounts: HTMLUListElement;
   issues: HTMLUListElement;
+  formatName: HTMLElement;
   formatDescription: HTMLElement;
   formatTips: HTMLUListElement;
   syntheticArea: HTMLElement;
@@ -442,6 +497,7 @@ function collectElements(root: HTMLElement): Elements {
     outputStatus: required(root, '#output-status'),
     accounts: required(root, '#accounts'),
     issues: required(root, '#issues'),
+    formatName: required(root, '#format-name'),
     formatDescription: required(root, '#format-description'),
     formatTips: required(root, '#format-tips'),
     syntheticArea: required(root, '#synthetic-area'),
@@ -510,7 +566,10 @@ function template(): string {
       <section class="studio">
         <header class="format-bar" aria-labelledby="format-label">
           <div class="format-context">
-            <p class="kicker" id="format-label" data-i18n="formatLabel"></p>
+            <div class="format-identity">
+              <p class="kicker" id="format-label" data-i18n="formatLabel"></p>
+              <p id="format-name" class="format-name"></p>
+            </div>
             <div class="format-copy">
               <p id="format-description" class="format-description"></p>
               <ul id="format-tips" class="format-tips"></ul>

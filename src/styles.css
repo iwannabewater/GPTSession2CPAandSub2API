@@ -371,78 +371,171 @@ html[data-locale='zh-CN'] .lead {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 18px;
-  padding: 10px 9px 25px;
+  gap: 14px;
+  width: 100%;
+  padding: 8px 7px 24px;
 }
 
 .format-context {
+  position: relative;
   display: grid;
-  grid-template-columns: minmax(150px, 0.28fr) minmax(0, 1fr);
+  grid-template-columns: minmax(190px, 0.3fr) minmax(0, 1fr);
   align-items: start;
-  gap: 26px;
+  gap: clamp(20px, 3.2vw, 38px);
   width: 100%;
-  padding: 18px 19px;
-  border: 1px solid oklch(0.9 0.022 83);
-  border-radius: var(--radius-md);
-  background: var(--paper-high);
+  overflow: hidden;
+  padding: clamp(20px, 2.3vw, 28px);
+  border: 1px solid oklch(0.87 0.026 168);
+  border-radius: calc(var(--radius-lg) - 5px);
+  background: linear-gradient(
+    135deg,
+    var(--paper-high) 0%,
+    oklch(0.979 0.015 91) 46%,
+    var(--jade-wash) 100%
+  );
+  box-shadow:
+    inset 0 1px 0 oklch(1 0 0 / 0.82),
+    0 14px 32px oklch(0.29 0.02 190 / 0.045);
+}
+
+.format-context::before {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 5px;
+  background: linear-gradient(180deg, var(--jade-deep), var(--amber));
+  content: '';
+}
+
+.format-identity {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+  padding-left: 2px;
 }
 
 .format-context .kicker {
-  flex: none;
   color: var(--jade-deep);
-  font-size: 18px;
-  letter-spacing: 0.02em;
+  font-size: 12px;
+  letter-spacing: 0.16em;
   line-height: 1.2;
-  text-transform: none;
+}
+
+.format-name {
+  color: var(--ink);
+  font-size: clamp(30px, 2.65vw, 39px);
+  line-height: 0.98;
+  letter-spacing: -0.026em;
+}
+
+html[data-locale='zh-CN'] .format-name {
+  letter-spacing: 0.015em;
 }
 
 .format-copy {
   display: grid;
-  gap: 10px;
+  gap: 17px;
   min-width: 0;
 }
 
 .format-description {
-  color: var(--ink-soft);
-  font-size: 16px;
-  line-height: 1.5;
+  max-width: 800px;
+  color: var(--ink);
+  font-size: clamp(17px, 1.45vw, 20px);
+  line-height: 1.55;
   text-wrap: pretty;
 }
 
 .format-tips {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px 14px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
   padding: 0;
-  color: var(--ink-soft);
-  font-size: 13px;
-  line-height: 1.45;
   list-style: none;
 }
 
-.format-tips li {
-  position: relative;
-  padding-left: 15px;
+.format-tip {
+  display: grid;
+  grid-template-areas:
+    'marker title'
+    '. copy';
+  grid-template-columns: 13px minmax(0, 1fr);
+  gap: 5px 10px;
   min-width: 0;
+  min-height: 112px;
+  padding: 14px 14px 15px;
+  border: 1px solid oklch(0.88 0.015 84);
+  border-radius: var(--radius-sm);
+  background: oklch(0.997 0.005 86 / 0.76);
+  box-shadow: inset 0 1px 0 oklch(1 0 0 / 0.72);
+}
+
+.format-tip-marker {
+  grid-area: marker;
+  width: 10px;
+  height: 10px;
+  margin-top: 5px;
+  border: 2px solid var(--paper-high);
+  border-radius: 999px;
+  background: var(--jade);
+  box-shadow: 0 0 0 1px oklch(0.75 0.05 170);
+}
+
+.format-tip[data-tone='identity'] .format-tip-marker {
+  background: var(--amber);
+  box-shadow: 0 0 0 1px oklch(0.73 0.076 63);
+}
+
+.format-tip[data-tone='renewal'] .format-tip-marker {
+  background: var(--danger);
+  box-shadow: 0 0 0 1px oklch(0.7 0.07 30);
+}
+
+.format-tip[data-tone='batch'] .format-tip-marker,
+.format-tip[data-tone='metadata'] .format-tip-marker {
+  background: var(--success);
+  box-shadow: 0 0 0 1px oklch(0.69 0.058 164);
+}
+
+.format-tip strong {
+  grid-area: title;
+  color: var(--jade-deep);
+  font-family: var(--font-code);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  line-height: 1.4;
+  text-transform: uppercase;
+}
+
+html[data-locale='zh-CN'] .format-tip strong {
+  font-family: var(--font-chinese);
+  font-size: 13px;
+  letter-spacing: 0.08em;
+}
+
+.format-tip-copy {
+  grid-area: copy;
+  color: var(--ink-soft);
+  font-size: 13px;
+  line-height: 1.52;
   overflow-wrap: anywhere;
 }
 
-.format-tips li::before {
-  position: absolute;
-  top: 0.62em;
-  left: 0;
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--amber);
-  content: '';
+html[data-locale='zh-CN'] .format-tip-copy {
+  font-size: 13.5px;
+  line-height: 1.62;
 }
 
 .format-tabs {
   display: flex;
   flex-wrap: wrap;
   justify-content: flex-start;
-  gap: 7px;
+  gap: 6px;
+  width: 100%;
+  padding: 6px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--paper-high);
 }
 
 .format-tabs button {
@@ -460,6 +553,7 @@ html[data-locale='zh-CN'] .lead {
   border-color: var(--jade);
   color: var(--paper);
   background: var(--jade);
+  box-shadow: 0 6px 14px oklch(0.33 0.054 181 / 0.16);
 }
 
 .session-route {
@@ -605,9 +699,10 @@ textarea::placeholder {
 }
 
 .quiet {
-  border: 1px solid oklch(0.86 0.018 82);
-  color: var(--ink-soft);
-  background: var(--canvas);
+  border: 1px solid oklch(0.82 0.04 68);
+  color: oklch(0.4 0.068 56);
+  background: linear-gradient(180deg, var(--paper-high), var(--amber-pale));
+  box-shadow: inset 0 1px 0 oklch(1 0 0 / 0.72);
 }
 
 .drop-zone {
@@ -786,9 +881,9 @@ textarea::placeholder {
   }
 
   .quiet:hover:not(:disabled) {
-    border-color: oklch(0.79 0.025 82);
-    background: var(--amber-pale);
-    color: var(--ink);
+    border-color: var(--amber);
+    background: oklch(0.94 0.046 74);
+    color: oklch(0.33 0.06 54);
   }
 
   .primary:hover:not(:disabled) {
@@ -815,6 +910,14 @@ textarea::placeholder {
 
   .hero {
     gap: 25px;
+  }
+
+  .format-context {
+    grid-template-columns: 1fr;
+  }
+
+  .format-tips {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .editor {
@@ -895,16 +998,21 @@ textarea::placeholder {
   }
 
   .format-context {
-    grid-template-columns: 1fr;
-    gap: 11px;
+    gap: 16px;
+    padding: 18px 16px;
   }
 
-  .format-context .kicker {
-    margin-bottom: 10px;
+  .format-name {
+    font-size: 29px;
   }
 
   .format-tips {
     grid-template-columns: 1fr;
+  }
+
+  .format-tip {
+    min-height: 0;
+    padding: 13px;
   }
 
   .format-tabs {
@@ -980,7 +1088,7 @@ textarea::placeholder {
   }
 }
 
-@media (max-width: 370px) {
+@media (max-width: 430px) {
   .masthead {
     flex-wrap: wrap;
   }

@@ -58,6 +58,7 @@ test('converts local input, switches locale and does not persist secrets', async
   await expect(output).toHaveValue(/"chatgpt_account_id": "acct_browser"/u);
   await expect(page.locator('#issues')).toContainText('未包含 refresh token');
   await expect(page.locator('#format-tips')).toContainText('只有输入里真的有 refresh token');
+  await expect(page.locator('#format-name')).toContainText('sub2api');
   const exportedAt = (JSON.parse(await output.inputValue()) as { exported_at: string }).exported_at;
   await page.getByRole('button', { name: 'CPA' }).click();
   await page.getByRole('button', { name: 'sub2api' }).click();
@@ -131,7 +132,10 @@ test('emits complete Codex Auth fixtures and warns on empty session fields', asy
   await expect(page.locator('#issues')).not.toContainText('空登录字段');
   await expect(page.locator('#issues')).toContainText('未发现需要处理的问题');
   await expect(page.locator('#synthetic-area')).toBeVisible();
-  await expect(page.locator('#format-tips')).toContainText('tokens.id_token 与 Cockpit');
+  await expect(page.locator('#format-name')).toContainText('Codex Auth');
+  await expect(page.locator('#format-tips')).toContainText(
+    'Codex Auth、CPA、Cockpit 与 AxonHub 共用同一规则',
+  );
 
   await page.locator('#session-input').fill(JSON.stringify(session));
   await expect(page.locator('#issues')).toContainText('Codex Auth 仍有空登录字段');

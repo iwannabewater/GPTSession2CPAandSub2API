@@ -12,7 +12,7 @@ Auth Session Bridge 在浏览器当前标签页内将 ChatGPT Session 或 Codex 
 2. 选择输出文档格式，确认页面显示的警告和账号信息。
 3. 复制或下载生成的 JSON，将其导入目标工具。完成导入后，删除下载文件并清理剪贴板内容。
 
-`Codex Auth` 会按 `~/.codex/auth.json` 的结构生成文档。它的 `id_token`、`access_token`、`refresh_token`、`account_id` 与 `last_refresh` 会和 Cockpit 输出里的对应值保持一致。缺少 `id_token` 或 `refresh_token` 时会保留空字符串，不会填入伪造密钥。
+`Codex Auth` 会按 `~/.codex/auth.json` 的结构生成文档。它的 `tokens.id_token`、`tokens.access_token`、`tokens.refresh_token`、`tokens.account_id` 与 `last_refresh` 会和 Cockpit 输出里的对应字段使用同一来源值。缺少 `id_token` 或 `refresh_token` 时会保留空字符串，不会填入伪造密钥。
 
 内置示例只用于查看交互和导出结构，示例中的身份与 token 均不能用于登录。
 
@@ -44,11 +44,11 @@ Auth Session Bridge 在浏览器当前标签页内将 ChatGPT Session 或 Codex 
 
 ## 合成 ID token 说明
 
-`https://chatgpt.com/api/auth/session` 返回的 ChatGPT Session JSON 通常包含 `accessToken`、用户信息和账号信息。它通常不包含 OpenAI 签名的真实 `id_token`。
+`https://chatgpt.com/api/auth/session` 返回的 ChatGPT Session JSON 通常包含 `accessToken`、用户信息和账号信息。它通常不包含 OpenAI 签名的真实 `id_token`，因此页面不能从普通 ChatGPT Session 响应中提取真实 ID token。
 
-CPA、Cockpit、Codex Auth 和 AxonHub 的合成 ID token 只有在你勾选开关后才会生成。页面会解码 access token 中可读取的 claims，再合并识别到的账号元数据。生成的 JWT header 是未签名结构，内容为 `{"alg":"none","typ":"JWT","cpa_synthetic":true}`；payload 包含 `iat`、`exp`、`email`，以及 `https://api.openai.com/auth` 下的 `chatgpt_account_id`、`chatgpt_user_id`、`chatgpt_plan_type` 等字段；第三段固定以 `.synthetic` 结尾。
+CPA、Cockpit、Codex Auth 和 AxonHub 共用同一套 ID token 选择逻辑。导出器会先保留输入里提供的真实 `id_token`。如果没有真实 `id_token`，只有在你勾选开关并且页面识别到 `account_id` 后，才会生成合成 ID token。页面会解码 access token 中可读取的 claims，再合并识别到的账号元数据。生成的 JWT header 是未签名结构，内容为 `{"alg":"none","typ":"JWT","cpa_synthetic":true}`；payload 包含 `iat`、`exp`、`email`，以及 `https://api.openai.com/auth` 下的 `chatgpt_account_id`、`chatgpt_user_id`、`chatgpt_plan_type` 等字段；第三段固定以 `.synthetic` 结尾。
 
-这个值只是给要求 ID-token 形状字段的导入器读取元数据。它不是 OpenAI 签名的登录凭证，不能证明认证状态，要求真实 `id_token` 的工具可能会拒绝。
+这个值只是给要求 ID-token 形状字段的导入器读取元数据。它不是 OpenAI 签名的登录凭证，不能证明认证状态，要求真实 `id_token` 的工具可能会拒绝。字段位置仍然遵循各目标格式：Codex Auth 写入 `tokens.id_token`，CPA 与 Cockpit 写入顶层 `id_token`，AxonHub 只有在存在值时才写入 `tokens.id_token`。
 
 ## 本地开发
 

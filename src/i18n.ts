@@ -31,32 +31,45 @@ const english = {
   format9router: 'Direct access-token import without renewal metadata.',
   formatAxonhub: 'ChatGPT auth document for AxonHub, forwarding a refresh token only if supplied.',
   formatCodexManager: 'Token document with Codex-Manager metadata fields when detected.',
+  tipTitleSchema: 'Structure',
+  tipTitleIdentity: 'ID token',
+  tipTitleRenewal: 'Renewal',
+  tipTitleBatch: 'Batching',
+  tipTitlePrivacy: 'Privacy',
+  tipTitleMetadata: 'Metadata',
   tipCodexAuthFields:
-    'Exports auth_mode, OPENAI_API_KEY, tokens.id_token, access_token, refresh_token, account_id and last_refresh; missing refresh_token or id_token stay as empty strings.',
-  tipCodexAuthSynthetic:
-    'ChatGPT Session usually has no real id_token. If enabled, the synthetic value matches Cockpit but is unsigned metadata and may be rejected by Codex.',
+    'Exports auth_mode, OPENAI_API_KEY, tokens.id_token, access_token, refresh_token, account_id and last_refresh. Missing login material stays as empty strings.',
+  tipSharedSynthetic:
+    'Codex Auth, CPA, Cockpit and AxonHub share one rule: keep a real input id_token first; otherwise synthesize only after opt-in and account_id detection.',
+  tipCodexAuthRenewal:
+    'A blank refresh_token means Codex cannot renew by itself. Import only when the target accepts that access-only state.',
   tipSub2apiBatch:
-    'Best for batch import. Each account gets expiry metadata and auto_pause_on_expired when the access token expiry is readable.',
+    'Best for multi-account import. Each account gets expiry metadata and auto_pause_on_expired when the access token expiry is readable.',
+  tipSub2apiIdentity:
+    'ID token is forwarded only when the input includes a real id_token. Synthetic ID tokens are not generated for sub2api.',
   tipSub2apiRefresh:
     'Refresh tokens are forwarded only when the input includes them; access-only accounts need replacement after expiry.',
-  tipCpaSynthetic:
-    'CPA and CLIProxyAPI read a flat type=codex document. The optional synthetic id_token carries account claims for tools that expect them.',
+  tipCpaFields:
+    'Flat type=codex document with id_token, access_token, refresh_token, account_id, last_refresh, email and expired.',
   tipCpaNoSession:
     'The ChatGPT sessionToken is never exported. Only OAuth-style token fields and readable account metadata are used.',
   tipCockpitFields:
     'Cockpit uses id_token, access_token, refresh_token, account_id and last_refresh at the top level.',
-  tipCockpitSynthetic:
-    'When synthetic ID token is enabled, the generated id_token is the same value Codex Auth receives inside tokens.id_token.',
+  tipCockpitAlignment:
+    'Codex Auth stores the corresponding token values under tokens.* and last_refresh for ~/.codex/auth.json compatibility.',
   tip9routerAccess:
     '9router import uses only accessToken plus a display name. Renewal and account metadata are intentionally omitted.',
+  tip9routerIdentity: 'No ID token, refresh token or account metadata is emitted for this target.',
   tip9routerExpiry:
     'Because no refresh token is exported, reimport a fresh access token after the current token expires.',
   tipAxonhubRefresh:
     'AxonHub receives auth_mode, last_refresh and tokens; refresh_token appears only when the input supplies it.',
-  tipAxonhubSynthetic:
-    'Synthetic id_token can help metadata-only imports, but it is not an OpenAI-signed login token.',
+  tipAxonhubCompact:
+    'Empty optional fields are omitted, so access-only inputs remain visibly access-only instead of receiving placeholders.',
   tipCodexManagerMeta:
     'Codex-Manager output includes tokens plus meta.label, issuer, status and any detected workspace or ChatGPT account IDs.',
+  tipCodexManagerIdentity:
+    'Uses a real source id_token when available and keeps it empty otherwise. Synthetic ID tokens are not generated for this target.',
   tipCodexManagerRefresh:
     'Missing refresh_token is kept empty so the importer can show the limitation instead of receiving a placeholder secret.',
   sessionSourceTitle: 'Starting from ChatGPT Session?',
@@ -165,30 +178,42 @@ const chinese: Record<keyof typeof english, string> = {
   format9router: '仅导入 access token，不附带续期字段。',
   formatAxonhub: '用于 AxonHub 的 ChatGPT 认证文档，仅在输入提供时传递 refresh token。',
   formatCodexManager: '用于 Codex-Manager 的 token 文档，可识别时包含元数据字段。',
+  tipTitleSchema: '结构',
+  tipTitleIdentity: 'ID token',
+  tipTitleRenewal: '续期',
+  tipTitleBatch: '批量',
+  tipTitlePrivacy: '隐私',
+  tipTitleMetadata: '元数据',
   tipCodexAuthFields:
-    '导出 auth_mode、OPENAI_API_KEY、tokens.id_token、access_token、refresh_token、account_id 与 last_refresh；缺少 refresh_token 或 id_token 时保留为空字符串。',
-  tipCodexAuthSynthetic:
-    'ChatGPT Session 通常没有真实 id_token。开启合成后，Codex Auth 的 tokens.id_token 与 Cockpit 的 id_token 相同，但它只是未签名元数据，Codex 可能拒绝。',
+    '导出 auth_mode、OPENAI_API_KEY、tokens.id_token、access_token、refresh_token、account_id 与 last_refresh。缺少登录材料时保留为空字符串。',
+  tipSharedSynthetic:
+    'Codex Auth、CPA、Cockpit 与 AxonHub 共用同一规则：先保留输入中的真实 id_token；没有时，只有勾选开关并识别到 account_id 才合成。',
+  tipCodexAuthRenewal:
+    'refresh_token 为空时，Codex 不能自行续期。只有目标工具接受这种 access-only 状态时再导入。',
   tipSub2apiBatch:
-    '适合批量导入。能读取 access token 过期时间时，每个账号会带上 expires_at 和 auto_pause_on_expired。',
+    '适合多账号导入。能读取 access token 过期时间时，每个账号会带上 expires_at 和 auto_pause_on_expired。',
+  tipSub2apiIdentity: '只有输入里包含真实 id_token 才会转写。sub2api 不生成合成 ID token。',
   tipSub2apiRefresh:
     '只有输入里真的有 refresh token 才会转写；仅 access token 的账号过期后需要重新导入。',
-  tipCpaSynthetic:
-    'CPA / CLIProxyAPI 读取 type=codex 的扁平文档。可选合成 id_token 用来给需要 claims 的工具补充账号信息。',
+  tipCpaFields:
+    '扁平 type=codex 文档，包含 id_token、access_token、refresh_token、account_id、last_refresh、email 与 expired。',
   tipCpaNoSession:
     'ChatGPT sessionToken 不会导出。页面只使用 OAuth 风格 token 字段和可读取的账号元数据。',
   tipCockpitFields:
     'Cockpit 在顶层读取 id_token、access_token、refresh_token、account_id 和 last_refresh。',
-  tipCockpitSynthetic:
-    '开启合成 ID token 时，生成值会同时作为 Codex Auth 的 tokens.id_token 使用。',
+  tipCockpitAlignment:
+    'Codex Auth 会把对应 token 值放到 tokens.* 和 last_refresh 下，用于匹配 ~/.codex/auth.json 结构。',
   tip9routerAccess: '9router 导入只需要 accessToken 和展示名称。续期字段与账号元数据会被刻意省略。',
+  tip9routerIdentity: '这个目标格式不会输出 ID token、refresh token 或账号元数据。',
   tip9routerExpiry: '由于不导出 refresh token，当前 access token 过期后需要重新导入新的 token。',
   tipAxonhubRefresh:
     'AxonHub 会收到 auth_mode、last_refresh 和 tokens；只有输入提供 refresh token 时才会包含该字段。',
-  tipAxonhubSynthetic:
-    '合成 id_token 可用于只读取元数据的导入场景，但它不是 OpenAI 签名的登录 token。',
+  tipAxonhubCompact:
+    '可选字段为空时会被省略，所以仅 access token 的输入会保持可见限制，不会收到占位值。',
   tipCodexManagerMeta:
     'Codex-Manager 输出包含 tokens 与 meta.label、issuer、status，以及可识别的 workspace 或 ChatGPT account ID。',
+  tipCodexManagerIdentity:
+    '有真实源 id_token 时直接使用，没有时保持为空。这个目标格式不生成合成 ID token。',
   tipCodexManagerRefresh:
     '缺少 refresh_token 时保留空字符串，让导入器明确展示限制，而不是收到伪造密钥。',
   sessionSourceTitle: '从 ChatGPT Session 开始？',

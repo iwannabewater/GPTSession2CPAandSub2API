@@ -1,6 +1,6 @@
 # Auth Session Bridge
 
-[中文文档](./README.zh-CN.md)
+[Chinese Documentation](./README.zh-CN.md)
 
 Auth Session Bridge converts ChatGPT Session or Codex Auth JSON into documents that other tools can import. Parsing and export run in the current browser tab. The interface opens in Chinese and can be switched to English.
 
@@ -12,7 +12,7 @@ Auth Session Bridge converts ChatGPT Session or Codex Auth JSON into documents t
 2. Select an output document format, then read the displayed warnings and account information.
 3. Copy or download the generated JSON and import it into the target tool. Delete downloaded files and clear clipboard contents after import.
 
-`Codex Auth` generates the `~/.codex/auth.json` shape. Its `id_token`, `access_token`, `refresh_token`, `account_id`, and `last_refresh` values match the corresponding Cockpit export values. Missing `id_token` or `refresh_token` fields are emitted as empty strings, not placeholder secrets.
+`Codex Auth` generates the `~/.codex/auth.json` shape. Its `tokens.id_token`, `tokens.access_token`, `tokens.refresh_token`, `tokens.account_id`, and `last_refresh` values use the same source values as the corresponding Cockpit export fields. Missing `id_token` or `refresh_token` fields are emitted as empty strings, not placeholder secrets.
 
 The built-in example is for inspecting the interaction and output structure. Its identity and tokens cannot be used to sign in.
 
@@ -44,11 +44,11 @@ The application reads Codex Auth, ChatGPT Session, JWT `access token` JSON, and 
 
 ## Synthetic ID token behavior
 
-The ChatGPT Session JSON returned from `https://chatgpt.com/api/auth/session` normally contains an `accessToken` plus user and account metadata. It does not normally contain a real OpenAI-signed `id_token`.
+The ChatGPT Session JSON returned from `https://chatgpt.com/api/auth/session` normally contains an `accessToken` plus user and account metadata. It does not normally contain a real OpenAI-signed `id_token`, so the page cannot extract a real ID token from an ordinary ChatGPT Session response.
 
-For CPA, Cockpit, Codex Auth, and AxonHub, the optional synthetic ID token is built only after you enable the checkbox. The page decodes readable claims from the access token and combines them with detected account metadata. The generated JWT uses an unsigned header, `{"alg":"none","typ":"JWT","cpa_synthetic":true}`, a payload containing `iat`, `exp`, `email`, and `https://api.openai.com/auth` claims such as `chatgpt_account_id`, `chatgpt_user_id`, and `chatgpt_plan_type`, then ends with the literal `.synthetic` segment.
+CPA, Cockpit, Codex Auth, and AxonHub share the same ID-token selection logic. The exporter first keeps a real input `id_token` if one was supplied. If no real `id_token` exists, a synthetic ID token is built only after you enable the checkbox and the page has detected an `account_id`. The page decodes readable claims from the access token and combines them with detected account metadata. The generated JWT uses an unsigned header, `{"alg":"none","typ":"JWT","cpa_synthetic":true}`, a payload containing `iat`, `exp`, `email`, and `https://api.openai.com/auth` claims such as `chatgpt_account_id`, `chatgpt_user_id`, and `chatgpt_plan_type`, then ends with the literal `.synthetic` segment.
 
-That value is metadata for importers that expect an ID-token-shaped field. It is not signed by OpenAI, cannot prove authentication, and may be rejected by tools that require a real `id_token`.
+That value is metadata for importers that expect an ID-token-shaped field. It is not signed by OpenAI, cannot prove authentication, and may be rejected by tools that require a real `id_token`. Field placement still follows each target schema: Codex Auth writes the value to `tokens.id_token`, CPA and Cockpit write it to top-level `id_token`, and AxonHub writes it to `tokens.id_token` only when a value exists.
 
 ## Development
 
