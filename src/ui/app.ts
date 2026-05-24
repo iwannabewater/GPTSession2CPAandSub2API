@@ -29,7 +29,16 @@ const formatDescriptions: Record<OutputFormat, MessageKey> = {
   axonhub: 'formatAxonhub',
   'codex-manager': 'formatCodexManager',
 };
-const syntheticFormats: readonly OutputFormat[] = ['cpa', 'cockpit', 'axonhub'];
+const formatTips: Record<OutputFormat, [MessageKey, MessageKey]> = {
+  'codex-auth': ['tipCodexAuthFields', 'tipCodexAuthSynthetic'],
+  sub2api: ['tipSub2apiBatch', 'tipSub2apiRefresh'],
+  cpa: ['tipCpaSynthetic', 'tipCpaNoSession'],
+  cockpit: ['tipCockpitFields', 'tipCockpitSynthetic'],
+  '9router': ['tip9routerAccess', 'tip9routerExpiry'],
+  axonhub: ['tipAxonhubRefresh', 'tipAxonhubSynthetic'],
+  'codex-manager': ['tipCodexManagerMeta', 'tipCodexManagerRefresh'],
+};
+const syntheticFormats: readonly OutputFormat[] = ['codex-auth', 'cpa', 'cockpit', 'axonhub'];
 
 const sourceDescriptions: Record<SourceKind, MessageKey> = {
   'chatgpt-session': 'sourceChatgptSession',
@@ -261,6 +270,13 @@ function updateView(elements: Elements, state: AppState): void {
     state.locale,
     formatDescriptions[state.format],
   );
+  elements.formatTips.replaceChildren(
+    ...formatTips[state.format].map((key) => {
+      const item = document.createElement('li');
+      item.textContent = translate(state.locale, key);
+      return item;
+    }),
+  );
   const acceptsSyntheticToken = syntheticFormats.includes(state.format);
   elements.syntheticArea.hidden = !acceptsSyntheticToken;
   elements.synthetic.disabled = !acceptsSyntheticToken;
@@ -402,6 +418,7 @@ interface Elements {
   accounts: HTMLUListElement;
   issues: HTMLUListElement;
   formatDescription: HTMLElement;
+  formatTips: HTMLUListElement;
   syntheticArea: HTMLElement;
   translated: NodeListOf<HTMLElement>;
   translatedLabels: NodeListOf<HTMLElement>;
@@ -426,6 +443,7 @@ function collectElements(root: HTMLElement): Elements {
     accounts: required(root, '#accounts'),
     issues: required(root, '#issues'),
     formatDescription: required(root, '#format-description'),
+    formatTips: required(root, '#format-tips'),
     syntheticArea: required(root, '#synthetic-area'),
     translated: root.querySelectorAll('[data-i18n]'),
     translatedLabels: root.querySelectorAll('[data-i18n-label]'),
@@ -493,7 +511,10 @@ function template(): string {
         <header class="format-bar" aria-labelledby="format-label">
           <div class="format-context">
             <p class="kicker" id="format-label" data-i18n="formatLabel"></p>
-            <p id="format-description" class="format-description"></p>
+            <div class="format-copy">
+              <p id="format-description" class="format-description"></p>
+              <ul id="format-tips" class="format-tips"></ul>
+            </div>
           </div>
           <div class="format-tabs" role="group" aria-labelledby="format-label">
             <button type="button" data-format="sub2api" aria-pressed="true">sub2api</button>

@@ -33,25 +33,67 @@ describe('exportCredentials', () => {
     expect(result.warnings).toEqual([]);
   });
 
-  it('does not manufacture missing Codex Auth login material', () => {
+  it('keeps the Codex Auth field set aligned with Cockpit when material is missing', () => {
     const result = exportCredentials('codex-auth', [credential()], {
+      includeSyntheticIdToken: false,
+      now: fixedNow,
+    });
+    const cockpit = exportCredentials('cockpit', [credential()], options).document as {
+      id_token: string;
+      refresh_token: string;
+      account_id: string;
+      last_refresh: string;
+    };
+
+    expect(result.document).toEqual({
+      auth_mode: 'chatgpt',
+      OPENAI_API_KEY: null,
+      tokens: {
+        id_token: cockpit.id_token,
+        access_token: credential().accessToken,
+        refresh_token: cockpit.refresh_token,
+        account_id: cockpit.account_id,
+      },
+      last_refresh: cockpit.last_refresh,
+    });
+    expect(result.warnings.map((warning) => warning.code)).toContain('CODEX_AUTH_INCOMPLETE');
+    expect(result.warnings.map((warning) => warning.code)).not.toContain('SYNTHETIC_ID_TOKEN');
+  });
+
+  it('uses the same synthetic ID token as Cockpit after explicit opt-in', () => {
+    const codexAuth = exportCredentials('codex-auth', [credential()], {
       includeSyntheticIdToken: true,
       now: fixedNow,
     });
+    const cockpit = exportCredentials('cockpit', [credential()], {
+      includeSyntheticIdToken: true,
+      now: fixedNow,
+    }).document as {
+      id_token: string;
+      access_token: string;
+      refresh_token: string;
+      account_id: string;
+      last_refresh: string;
+    };
+    const document = codexAuth.document as {
+      tokens: {
+        id_token: string;
+        access_token: string;
+        refresh_token: string;
+        account_id: string;
+      };
+      last_refresh: string;
+    };
 
-    expect(result.document).toMatchObject({
-      auth_mode: 'chatgpt',
-      OPENAI_API_KEY: null,
-      tokens: { access_token: credential().accessToken, account_id: 'acct_verified' },
-    });
-    expect((result.document as { tokens: Record<string, string> }).tokens).not.toHaveProperty(
-      'id_token',
+    expect(document.tokens.id_token).toBe(cockpit.id_token);
+    expect(document.tokens.access_token).toBe(cockpit.access_token);
+    expect(document.tokens.refresh_token).toBe(cockpit.refresh_token);
+    expect(document.tokens.account_id).toBe(cockpit.account_id);
+    expect(document.last_refresh).toBe(cockpit.last_refresh);
+    expect(document.tokens.id_token.endsWith('.synthetic')).toBe(true);
+    expect(codexAuth.warnings.map((warning) => warning.code)).toEqual(
+      expect.arrayContaining(['CODEX_AUTH_INCOMPLETE', 'SYNTHETIC_ID_TOKEN']),
     );
-    expect((result.document as { tokens: Record<string, string> }).tokens).not.toHaveProperty(
-      'refresh_token',
-    );
-    expect(result.warnings.map((warning) => warning.code)).toContain('CODEX_AUTH_INCOMPLETE');
-    expect(result.warnings.map((warning) => warning.code)).not.toContain('SYNTHETIC_ID_TOKEN');
   });
 
   it('emits canonical sub2api batch data with access-token expiry fields', () => {

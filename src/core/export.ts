@@ -71,19 +71,21 @@ function buildCodexAuth(
   options: ExportOptions,
   warnings: ExportWarning[],
 ): JsonObject {
-  const usableIdToken = credential.idTokenSynthetic ? undefined : credential.idToken;
-  if (!usableIdToken || !credential.refreshToken || !credential.accountId) {
+  const idToken = effectiveIdToken(credential, 'codex-auth', options, warnings) ?? '';
+  const refreshToken = credential.refreshToken ?? '';
+  const accountId = credential.accountId ?? '';
+  if (!idToken || !refreshToken || !accountId) {
     addWarning(warnings, { code: 'CODEX_AUTH_INCOMPLETE', format: 'codex-auth' });
   }
   return {
     auth_mode: 'chatgpt',
     OPENAI_API_KEY: null,
-    tokens: compactObject({
-      id_token: usableIdToken,
+    tokens: {
+      id_token: idToken,
       access_token: credential.accessToken,
-      refresh_token: credential.refreshToken,
-      account_id: credential.accountId,
-    }),
+      refresh_token: refreshToken,
+      account_id: accountId,
+    },
     last_refresh: credential.lastRefresh ?? options.now.toISOString(),
   };
 }

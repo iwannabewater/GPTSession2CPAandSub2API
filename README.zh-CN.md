@@ -12,7 +12,7 @@ Auth Session Bridge 在浏览器当前标签页内将 ChatGPT Session 或 Codex 
 2. 选择输出文档格式，确认页面显示的警告和账号信息。
 3. 复制或下载生成的 JSON，将其导入目标工具。完成导入后，删除下载文件并清理剪贴板内容。
 
-`Codex Auth` 会按 `~/.codex/auth.json` 的结构生成文档。导出器只转写输入中已有的 `id_token`、`access_token`、`refresh_token` 和 `account_id`；登录字段缺失时，页面会报告文档不完整，不会补造字段。
+`Codex Auth` 会按 `~/.codex/auth.json` 的结构生成文档。它的 `id_token`、`access_token`、`refresh_token`、`account_id` 与 `last_refresh` 会和 Cockpit 输出里的对应值保持一致。缺少 `id_token` 或 `refresh_token` 时会保留空字符串，不会填入伪造密钥。
 
 内置示例只用于查看交互和导出结构，示例中的身份与 token 均不能用于登录。
 
@@ -32,7 +32,7 @@ Auth Session Bridge 在浏览器当前标签页内将 ChatGPT Session 或 Codex 
 
 | 输出            | 生成内容                                                                    |
 | --------------- | --------------------------------------------------------------------------- |
-| `Codex Auth`    | `~/.codex/auth.json` 结构，只转写输入已有的登录字段。                       |
+| `Codex Auth`    | `~/.codex/auth.json` 结构，token 字段与 Cockpit 输出值保持一致。            |
 | `sub2api`       | 批量载荷，包含过期时间与自动暂停字段。                                      |
 | `CPA`           | CPA / CLIProxyAPI 使用的扁平 Codex token 文档。                             |
 | `Cockpit`       | Cockpit Tools 使用的扁平 Codex token 文档。                                 |
@@ -41,6 +41,14 @@ Auth Session Bridge 在浏览器当前标签页内将 ChatGPT Session 或 Codex 
 | `Codex-Manager` | Token 文档，可识别时包含 `workspaceId` 与 `chatgptAccountId` 等元数据字段。 |
 
 应用可读取 Codex Auth、ChatGPT Session、仅含 JWT `access token` 的 JSON，以及表中格式的导出结构。它会解码 JWT 中可读取的身份和过期信息，但不会验证 token 当前是否有效。
+
+## 合成 ID token 说明
+
+`https://chatgpt.com/api/auth/session` 返回的 ChatGPT Session JSON 通常包含 `accessToken`、用户信息和账号信息。它通常不包含 OpenAI 签名的真实 `id_token`。
+
+CPA、Cockpit、Codex Auth 和 AxonHub 的合成 ID token 只有在你勾选开关后才会生成。页面会解码 access token 中可读取的 claims，再合并识别到的账号元数据。生成的 JWT header 是未签名结构，内容为 `{"alg":"none","typ":"JWT","cpa_synthetic":true}`；payload 包含 `iat`、`exp`、`email`，以及 `https://api.openai.com/auth` 下的 `chatgpt_account_id`、`chatgpt_user_id`、`chatgpt_plan_type` 等字段；第三段固定以 `.synthetic` 结尾。
+
+这个值只是给要求 ID-token 形状字段的导入器读取元数据。它不是 OpenAI 签名的登录凭证，不能证明认证状态，要求真实 `id_token` 的工具可能会拒绝。
 
 ## 本地开发
 

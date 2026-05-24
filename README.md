@@ -12,7 +12,7 @@ Auth Session Bridge converts ChatGPT Session or Codex Auth JSON into documents t
 2. Select an output document format, then read the displayed warnings and account information.
 3. Copy or download the generated JSON and import it into the target tool. Delete downloaded files and clear clipboard contents after import.
 
-`Codex Auth` generates the `~/.codex/auth.json` shape. The exporter only forwards `id_token`, `access_token`, `refresh_token`, and `account_id` values present in the input. When login fields are missing, it reports an incomplete document and does not invent replacements.
+`Codex Auth` generates the `~/.codex/auth.json` shape. Its `id_token`, `access_token`, `refresh_token`, `account_id`, and `last_refresh` values match the corresponding Cockpit export values. Missing `id_token` or `refresh_token` fields are emitted as empty strings, not placeholder secrets.
 
 The built-in example is for inspecting the interaction and output structure. Its identity and tokens cannot be used to sign in.
 
@@ -32,7 +32,7 @@ Do not commit real credentials, paste them into issues, include them in screensh
 
 | Output          | Generated content                                                                            |
 | --------------- | -------------------------------------------------------------------------------------------- |
-| `Codex Auth`    | `~/.codex/auth.json` shape, forwarding only login fields present in the input.               |
+| `Codex Auth`    | `~/.codex/auth.json` shape, with token fields aligned to the Cockpit export values.          |
 | `sub2api`       | Batch payload with expiry and automatic-pause fields.                                        |
 | `CPA`           | Flat Codex token document used by CPA / CLIProxyAPI.                                         |
 | `Cockpit`       | Flat Codex token document used by Cockpit Tools.                                             |
@@ -41,6 +41,14 @@ Do not commit real credentials, paste them into issues, include them in screensh
 | `Codex-Manager` | Token document with metadata fields such as `workspaceId` and `chatgptAccountId` when found. |
 
 The application reads Codex Auth, ChatGPT Session, JWT `access token` JSON, and exported structures from the listed formats. It decodes readable identity and expiry information from JWT payloads, but does not verify whether a token still works.
+
+## Synthetic ID token behavior
+
+The ChatGPT Session JSON returned from `https://chatgpt.com/api/auth/session` normally contains an `accessToken` plus user and account metadata. It does not normally contain a real OpenAI-signed `id_token`.
+
+For CPA, Cockpit, Codex Auth, and AxonHub, the optional synthetic ID token is built only after you enable the checkbox. The page decodes readable claims from the access token and combines them with detected account metadata. The generated JWT uses an unsigned header, `{"alg":"none","typ":"JWT","cpa_synthetic":true}`, a payload containing `iat`, `exp`, `email`, and `https://api.openai.com/auth` claims such as `chatgpt_account_id`, `chatgpt_user_id`, and `chatgpt_plan_type`, then ends with the literal `.synthetic` segment.
+
+That value is metadata for importers that expect an ID-token-shaped field. It is not signed by OpenAI, cannot prove authentication, and may be rejected by tools that require a real `id_token`.
 
 ## Development
 

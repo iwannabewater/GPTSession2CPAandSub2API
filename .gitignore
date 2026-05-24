@@ -5,6 +5,7 @@ playwright-report/
 test-results/
 .vite/
 .env*
+.claude/settings.local.json
 
 # Sensitive converter material must never enter version control.
 *.session.json

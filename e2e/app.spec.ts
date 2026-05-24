@@ -57,6 +57,7 @@ test('converts local input, switches locale and does not persist secrets', async
   await expect(output).toHaveValue(/"type": "sub2api-data"/u);
   await expect(output).toHaveValue(/"chatgpt_account_id": "acct_browser"/u);
   await expect(page.locator('#issues')).toContainText('未包含 refresh token');
+  await expect(page.locator('#format-tips')).toContainText('只有输入里真的有 refresh token');
   const exportedAt = (JSON.parse(await output.inputValue()) as { exported_at: string }).exported_at;
   await page.getByRole('button', { name: 'CPA' }).click();
   await page.getByRole('button', { name: 'sub2api' }).click();
@@ -121,22 +122,34 @@ test('accepts an actual dropped JSON file and keeps outputs honest about renewal
   await expect(page.locator('#issues')).toContainText('合成 ID token');
 });
 
-test('emits Codex Auth only from supplied login material and warns on incomplete sessions', async ({
-  page,
-}) => {
+test('emits complete Codex Auth fixtures and warns on empty session fields', async ({ page }) => {
   await page.goto('/');
   await dropJson(page, codexAuthFixture);
   await page.getByRole('button', { name: 'Codex Auth' }).click();
 
   expect(JSON.parse(await page.locator('#output').inputValue())).toEqual(codexAuthFixture);
-  await expect(page.locator('#issues')).not.toContainText('Codex Auth 不完整');
+  await expect(page.locator('#issues')).not.toContainText('空登录字段');
   await expect(page.locator('#issues')).toContainText('未发现需要处理的问题');
-  await expect(page.locator('#synthetic-area')).toBeHidden();
+  await expect(page.locator('#synthetic-area')).toBeVisible();
+  await expect(page.locator('#format-tips')).toContainText('tokens.id_token 与 Cockpit');
 
   await page.locator('#session-input').fill(JSON.stringify(session));
-  await expect(page.locator('#issues')).toContainText('Codex Auth 不完整');
-  expect(await page.locator('#output').inputValue()).not.toContain('"id_token"');
-  expect(await page.locator('#output').inputValue()).not.toContain('"refresh_token"');
+  await expect(page.locator('#issues')).toContainText('Codex Auth 仍有空登录字段');
+  const incompleteCodexAuth = JSON.parse(await page.locator('#output').inputValue()) as {
+    tokens: { id_token: string; refresh_token: string; account_id: string };
+  };
+  expect(incompleteCodexAuth.tokens).toMatchObject({
+    id_token: '',
+    refresh_token: '',
+    account_id: 'acct_browser',
+  });
+  await page.locator('#synthetic').check();
+  const syntheticCodexAuth = JSON.parse(await page.locator('#output').inputValue()) as {
+    tokens: { id_token: string; refresh_token: string; account_id: string };
+  };
+  expect(syntheticCodexAuth.tokens.id_token).toContain('.synthetic');
+  expect(syntheticCodexAuth.tokens.refresh_token).toBe('');
+  expect(syntheticCodexAuth.tokens.account_id).toBe('acct_browser');
 });
 
 test('rejects oversized dropped files before producing output', async ({ page }) => {
