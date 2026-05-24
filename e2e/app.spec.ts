@@ -32,8 +32,22 @@ test('converts local input, switches locale and does not persist secrets', async
   });
   await page.goto('/');
   await expect(page.locator('html')).toHaveAttribute('lang', 'zh-CN');
-  await expect(page.getByRole('heading', { level: 1 })).toContainText('本地转换凭证');
-  await expect(page.locator('#issues')).toContainText('尚未识别到凭证');
+  await expect(page.getByRole('heading', { level: 1 })).toContainText('在浏览器内整理凭证文档');
+  await expect(page.locator('#issues')).toContainText('未找到凭证记录');
+  await expect(
+    page.locator('.boundary-facts').getByText('当前标签页内存', { exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.locator('.boundary-facts').getByText('不写入凭证', { exact: true }),
+  ).toBeVisible();
+  const sessionLink = page.getByRole('link', { name: '打开 Session JSON 页面' });
+  await expect(sessionLink).toHaveAttribute('href', 'https://chatgpt.com/api/auth/session');
+  await expect(sessionLink).toHaveAttribute('target', '_blank');
+  await expect(sessionLink).toHaveAttribute('rel', 'noopener noreferrer');
+  const toggleWidths = await page
+    .locator('.locale-switch button')
+    .evaluateAll((buttons) => buttons.map((button) => button.getBoundingClientRect().width));
+  expect(Math.abs((toggleWidths[0] ?? 0) - (toggleWidths[1] ?? 0))).toBeLessThan(0.5);
   expect(
     await page.evaluate(() => getComputedStyle(document.body).fontFamily.includes('LXGW WenKai')),
   ).toBe(true);
@@ -52,10 +66,18 @@ test('converts local input, switches locale and does not persist secrets', async
 
   await page.getByRole('button', { name: 'English' }).click();
   await expect(page.locator('html')).toHaveAttribute('lang', 'en');
-  await expect(page.getByRole('heading', { level: 1 })).toContainText('Move authentication');
+  await expect(page.getByRole('heading', { level: 1 })).toContainText(
+    'Prepare credential documents',
+  );
   expect(
     await page.evaluate(() => getComputedStyle(document.body).fontFamily.includes('Charter')),
   ).toBe(true);
+  expect(
+    await page
+      .getByRole('button', { name: '中文' })
+      .evaluate((element) => getComputedStyle(element).fontFamily.includes('LXGW WenKai')),
+  ).toBe(true);
+  await expect(page.getByRole('link', { name: 'Open session JSON page' })).toBeVisible();
 
   await context.grantPermissions(['clipboard-read', 'clipboard-write']);
   await page.getByRole('button', { name: 'Copy JSON' }).click();
@@ -179,7 +201,7 @@ test('maintains the two-panel workspace at desktop and a single-column flow on m
   expect(
     await skipLink.evaluate((element) => element.getBoundingClientRect().top),
   ).toBeGreaterThanOrEqual(0);
-  await page.getByRole('button', { name: '载入安全示例' }).click();
+  await page.getByRole('button', { name: '安全示例' }).click();
   expect(
     await skipLink.evaluate((element) => element.getBoundingClientRect().bottom),
   ).toBeLessThanOrEqual(0);

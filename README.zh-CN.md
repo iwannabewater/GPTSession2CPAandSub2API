@@ -2,47 +2,45 @@
 
 [English README](./README.md)
 
-在浏览器本地把 ChatGPT Session 或 Codex 凭证 JSON 转成目标工具所需的导入文档。页面默认显示中文，可切换到英文。
+Auth Session Bridge 在浏览器当前标签页内将 ChatGPT Session 或 Codex Auth JSON 转成目标工具可导入的文档。界面默认使用中文，可随时切换为英文。
 
-[打开在线版](https://whynotsleep.cc/auth-session-bridge/)
+[打开在线页面](https://whynotsleep.cc/auth-session-bridge/)
 
-## 使用前须知
+## 开始使用
 
-输入和导出结果都可能授予账户访问权限。请在可信设备上操作，导入完成后清除下载文件和剪贴板历史。
+1. 准备输入。使用 ChatGPT Session 时，先登录 ChatGPT，再打开 `https://chatgpt.com/api/auth/session`，将返回的 JSON 粘贴到页面中。应用内也提供了这个入口。
+2. 选择输出文档格式，确认页面显示的警告和账号信息。
+3. 复制或下载生成的 JSON，将其导入目标工具。完成导入后，删除下载文件并清理剪贴板内容。
 
-- 转换只发生在当前页面：不上传、不遥测、不把凭证写入浏览器存储。
-- 页面不向外部服务发送凭证，安全策略禁用运行时 API 连接。
-- 超过 4 MiB 的输入、过深嵌套或超过 250 个账号的批量内容会被拒绝。
-- 仅含 `access token` 的账号在过期后无法续期，页面会明确警告。
-- 合成 `ID token` 默认关闭；即使手动启用，也不能替代真实登录凭证。
+`Codex Auth` 会按 `~/.codex/auth.json` 的结构生成文档。导出器只转写输入中已有的 `id_token`、`access_token`、`refresh_token` 和 `account_id`；登录字段缺失时，页面会报告文档不完整，不会补造字段。
+
+内置示例只用于查看交互和导出结构，示例中的身份与 token 均不能用于登录。
+
+## 凭证处理
+
+输入和导出文档都可能授予账号访问权限，请只在可信设备上操作。
+
+- 解析、检查与导出发生在当前标签页内存中；页面不将凭证写入 `localStorage`、`sessionStorage` 或 `IndexedDB`。
+- 页面不向外部服务发送输入内容。发布版本的内容安全策略设置了 `connect-src 'none'`，禁止脚本发起运行时网络连接。
+- 应用会拒绝超过 4 MiB 的输入、层级过深的数据，以及超过 250 个账号的批量内容。
+- 只有 `access token` 的账号无法在令牌过期后续期，页面会提示这一限制。
+- 合成 `ID token` 默认关闭；即使手动启用，它也不是登录凭证。
 
 不要将真实凭证提交到仓库、粘贴到 issue、放入截图或发送到聊天记录。
 
-## 使用方式
+## 支持文档
 
-1. 打开在线页面，粘贴 JSON，或拖入一个或多个 `.json` 文件。
-2. 选择输出格式，查看检查结果。
-3. 复制或下载导出文档，并将其导入目标工具。
-
-如需转换 ChatGPT Web Session，请在单独的浏览器标签页登录 ChatGPT 后访问 `https://chatgpt.com/api/auth/session`，并只将返回的 JSON 粘贴到本工具中。
-
-`Codex Auth` 会生成与 `~/.codex/auth.json` 同形的文档。它只传递输入中已有的 `id_token`、`access_token`、`refresh_token` 与 `account_id`；缺少登录字段时会提示文档不完整，不会伪造补全。
-
-页面自带的安全示例只用于查看界面和导出结构，其中的身份与 token 均不可用于认证。
-
-## 支持格式
-
-| 输出            | 行为说明                                                                    |
+| 输出            | 生成内容                                                                    |
 | --------------- | --------------------------------------------------------------------------- |
-| `Codex Auth`    | `~/.codex/auth.json` 结构，只传递输入已有的登录字段。                       |
-| `sub2api`       | 批量载荷，包含过期时间和自动暂停字段。                                      |
+| `Codex Auth`    | `~/.codex/auth.json` 结构，只转写输入已有的登录字段。                       |
+| `sub2api`       | 批量载荷，包含过期时间与自动暂停字段。                                      |
 | `CPA`           | CPA / CLIProxyAPI 使用的扁平 Codex token 文档。                             |
 | `Cockpit`       | Cockpit Tools 使用的扁平 Codex token 文档。                                 |
-| `9router`       | 直接导入 `access token`，不声明具备续期能力。                               |
-| `AxonHub`       | ChatGPT 认证文档，仅在输入包含时导出 `refresh_token`。                      |
-| `Codex-Manager` | Token 文档；可识别时包含 `workspaceId` 与 `chatgptAccountId` 等元数据字段。 |
+| `9router`       | 直接导入 `access token`，不附带续期字段。                                   |
+| `AxonHub`       | ChatGPT 认证文档，仅在输入提供时导出 `refresh_token`。                      |
+| `Codex-Manager` | Token 文档，可识别时包含 `workspaceId` 与 `chatgptAccountId` 等元数据字段。 |
 
-可识别输入包括 Codex Auth、ChatGPT Web Session、仅含 JWT `access token` 的 JSON，以及上述目标工具的导出结构。应用可以解码 JWT 中的身份和过期提示，但不会验证 token 是否有效。
+应用可读取 Codex Auth、ChatGPT Session、仅含 JWT `access token` 的 JSON，以及表中格式的导出结构。它会解码 JWT 中可读取的身份和过期信息，但不会验证 token 当前是否有效。
 
 ## 本地开发
 
@@ -62,11 +60,11 @@ npm run verify
 ```text
 src/core/parse.ts       有边界地读取不可信 JSON
 src/core/normalize.ts   提取统一凭证记录
-src/core/export.ts      生成各目标格式
-src/ui/app.ts           本地页面交互与检查提示
+src/core/export.ts      生成各目标文档
+src/ui/app.ts           浏览器交互与检查提示
 ```
 
-新增或调整格式适配器时，请同时提交不含真实凭证的测试样例，并覆盖字段完整和字段缺失两类情况。
+调整格式适配器时，请提交不含真实凭证的测试样例，并覆盖字段完整和字段缺失两类输入。
 
 ## 许可证
 

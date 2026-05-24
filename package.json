@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "Local-only credential format bridge for ChatGPT session and Codex-compatible imports.",
+  "description": "In-browser credential document converter for ChatGPT Session and Codex Auth.",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",

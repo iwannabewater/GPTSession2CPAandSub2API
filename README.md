@@ -2,47 +2,45 @@
 
 [中文文档](./README.zh-CN.md)
 
-Convert ChatGPT Session or Codex credential JSON into import documents for other tools, entirely in the browser. The interface opens in Chinese and can be switched to English.
+Auth Session Bridge converts ChatGPT Session or Codex Auth JSON into documents that other tools can import. Parsing and export run in the current browser tab. The interface opens in Chinese and can be switched to English.
 
 [Open the application](https://whynotsleep.cc/auth-session-bridge/)
 
-## Before using it
+## Getting started
 
-Both input and exported documents may grant account access. Work on a trusted device, then clear downloaded files and clipboard history after import.
+1. Prepare an input document. For ChatGPT Session, sign in to ChatGPT, open `https://chatgpt.com/api/auth/session`, and paste the returned JSON into the page. The application provides the same shortcut.
+2. Select an output document format, then read the displayed warnings and account information.
+3. Copy or download the generated JSON and import it into the target tool. Delete downloaded files and clear clipboard contents after import.
 
-- Conversion stays in the current page: no uploads, telemetry, or credential writes to browser storage.
-- The page sends no credentials to external services, and its security policy disables runtime API connections.
-- Inputs larger than 4 MiB, excessive nesting, and batches larger than 250 accounts are rejected.
-- An account with only an `access token` cannot renew after expiry; the page reports this plainly.
-- Synthetic `ID token` generation is off by default and cannot substitute for real sign-in credentials.
+`Codex Auth` generates the `~/.codex/auth.json` shape. The exporter only forwards `id_token`, `access_token`, `refresh_token`, and `account_id` values present in the input. When login fields are missing, it reports an incomplete document and does not invent replacements.
 
-Never commit real credentials, paste them into issues, include them in screenshots, or send them through chat.
+The built-in example is for inspecting the interaction and output structure. Its identity and tokens cannot be used to sign in.
 
-## Usage
+## Credential handling
 
-1. Open the application and paste JSON, or drop one or more `.json` files.
-2. Select an output format and review the checks.
-3. Copy or download the exported document and import it into the target tool.
+Input and exported documents may grant account access. Use the page only on a trusted device.
 
-To convert a ChatGPT Web Session, sign in to ChatGPT in a separate browser tab, visit `https://chatgpt.com/api/auth/session`, and paste the returned JSON only into this tool.
+- Parsing, checks, and export occur in memory in the current tab. The page does not write credentials to `localStorage`, `sessionStorage`, or `IndexedDB`.
+- The page does not send input to an external service. The deployed Content Security Policy sets `connect-src 'none'`, which prevents application scripts from initiating runtime network connections.
+- Inputs larger than 4 MiB, excessively nested data, and batches exceeding 250 accounts are rejected.
+- Accounts containing only an `access token` cannot renew after the token expires, and the page reports this limitation.
+- Synthetic `ID token` generation is off by default. When enabled, the generated value is not a sign-in credential.
 
-`Codex Auth` produces a document shaped like `~/.codex/auth.json`. It forwards the supplied `id_token`, `access_token`, `refresh_token`, and `account_id` fields; if sign-in fields are absent, it reports an incomplete document instead of inventing them.
+Do not commit real credentials, paste them into issues, include them in screenshots, or send them through chat.
 
-The built-in safe example is for inspecting the interface and output shapes only. Its identity and tokens cannot authenticate.
+## Supported documents
 
-## Formats
-
-| Output          | Behavior                                                                                     |
+| Output          | Generated content                                                                            |
 | --------------- | -------------------------------------------------------------------------------------------- |
-| `Codex Auth`    | `~/.codex/auth.json` shape, forwarding only supplied sign-in fields.                         |
+| `Codex Auth`    | `~/.codex/auth.json` shape, forwarding only login fields present in the input.               |
 | `sub2api`       | Batch payload with expiry and automatic-pause fields.                                        |
 | `CPA`           | Flat Codex token document used by CPA / CLIProxyAPI.                                         |
 | `Cockpit`       | Flat Codex token document used by Cockpit Tools.                                             |
-| `9router`       | Direct `access token` import without claiming renewal capability.                            |
-| `AxonHub`       | ChatGPT auth document; exports `refresh_token` only when it was supplied.                    |
+| `9router`       | Direct `access token` import without renewal fields.                                         |
+| `AxonHub`       | ChatGPT auth document, exporting `refresh_token` only when supplied in the input.            |
 | `Codex-Manager` | Token document with metadata fields such as `workspaceId` and `chatgptAccountId` when found. |
 
-Recognized inputs include Codex Auth, ChatGPT Web Session, JWT `access token` JSON, and export structures from the listed tools. The application can decode identity and expiry hints from JWT payloads; it does not verify whether a token is valid.
+The application reads Codex Auth, ChatGPT Session, JWT `access token` JSON, and exported structures from the listed formats. It decodes readable identity and expiry information from JWT payloads, but does not verify whether a token still works.
 
 ## Development
 
@@ -63,10 +61,10 @@ Core modules:
 src/core/parse.ts       bounded reading of untrusted JSON
 src/core/normalize.ts   normalized credential extraction
 src/core/export.ts      target document generation
-src/ui/app.ts           local UI behavior and user-facing checks
+src/ui/app.ts           browser interaction and user-facing checks
 ```
 
-When adding or changing an adapter, commit only non-secret fixtures and test both complete and missing-field credentials.
+When changing an adapter, commit non-secret test fixtures and cover both complete and missing-field inputs.
 
 ## License
 

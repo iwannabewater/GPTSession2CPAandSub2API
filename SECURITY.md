@@ -1,19 +1,21 @@
 # Security
 
-Auth Session Bridge converts bearer credentials in the browser. Treat pasted input and every exported document as a password.
+Auth Session Bridge transforms bearer credentials in the user's browser. Input and exported documents may grant account access.
 
 ## Data handling
 
-- Parsing and export run in the browser.
-- The application does not persist credentials or send them to an external service.
-- The deployed HTML applies a Content Security Policy with `connect-src 'none'` to disable runtime API connections.
-- The built-in example and repository tests use non-working placeholder credentials.
+- Parsing, checks, and export occur in memory in the current browser tab.
+- The application does not write credentials to `localStorage`, `sessionStorage`, or `IndexedDB`.
+- The application does not transmit pasted input or generated output to an external service.
+- The deployed HTML sets a Content Security Policy with `connect-src 'none'`, preventing application scripts from initiating runtime network connections.
+- The ChatGPT Session shortcut is an external link opened only by the user; it does not carry input from this application.
+- The built-in example and repository tests contain non-working placeholder credentials.
 
-The application is deployed as static files on GitHub Pages. There is no server-side credential processing component in this repository.
+The application is deployed as static files on GitHub Pages. This repository has no server-side component that processes credentials.
 
-## Using real credentials
+## Working with credentials
 
-Use a trusted device and browser profile. After importing an exported document, clear downloaded copies and clipboard history where available. If a credential is exposed, revoke it through the relevant account security controls.
+Use a trusted device and browser profile. Delete exported files and clear clipboard history after import where your system supports it. If a credential appears in a public location or a message thread, revoke or rotate it through the relevant account controls.
 
 ## Reporting a vulnerability
 

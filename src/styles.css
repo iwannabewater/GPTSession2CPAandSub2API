@@ -66,6 +66,10 @@ textarea {
   font: inherit;
 }
 
+a {
+  color: inherit;
+}
+
 button {
   min-height: 43px;
   touch-action: manipulation;
@@ -87,6 +91,7 @@ button:disabled {
 }
 
 button:focus-visible,
+a:focus-visible,
 textarea:focus-visible,
 input:focus-visible + span {
   outline: 2px solid var(--jade);
@@ -174,8 +179,10 @@ h2 {
 }
 
 .locale-switch {
-  display: inline-flex;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   flex: none;
+  width: 224px;
   padding: 4px;
   border: 1px solid var(--line-strong);
   border-radius: 999px;
@@ -183,13 +190,22 @@ h2 {
 }
 
 .locale-switch button {
-  min-width: 78px;
+  width: 100%;
+  min-width: 0;
   min-height: 42px;
-  padding: 0 19px;
+  padding: 0 12px;
   border: 0;
   border-radius: 999px;
   color: var(--ink-soft);
   background: transparent;
+}
+
+.locale-switch button[data-locale='zh-CN'] {
+  font-family: var(--font-chinese);
+}
+
+.locale-switch button[data-locale='en'] {
+  font-family: var(--font-reading);
 }
 
 .locale-switch button[aria-pressed='true'] {
@@ -256,6 +272,7 @@ html[data-locale='zh-CN'] .hero h1 {
   color: var(--ink-soft);
   font-size: 19px;
   line-height: 1.55;
+  text-wrap: pretty;
 }
 
 html[data-locale='zh-CN'] .lead {
@@ -282,27 +299,40 @@ html[data-locale='zh-CN'] .lead {
   color: oklch(0.927 0.012 168);
   font-size: 16px;
   line-height: 1.65;
+  text-wrap: pretty;
 }
 
-.trust-card ul {
+.boundary-facts {
   display: grid;
-  gap: 10px;
+  gap: 0;
+  margin: 0;
   padding: 18px 0 0;
   border-top: 1px solid oklch(0.57 0.038 178 / 0.55);
-  list-style: none;
 }
 
-.trust-card li {
-  position: relative;
-  padding-left: 19px;
-  color: oklch(0.9 0.018 165);
+.boundary-facts div {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 6px 0;
   font-size: 14px;
 }
 
-.trust-card li::before {
-  position: absolute;
-  top: 0.52em;
-  left: 0;
+.boundary-facts dt {
+  color: oklch(0.78 0.033 167);
+}
+
+.boundary-facts dd {
+  display: flex;
+  gap: 9px;
+  align-items: center;
+  margin: 0;
+  color: oklch(0.935 0.019 164);
+  text-align: right;
+}
+
+.boundary-facts dd::before {
+  flex: none;
   width: 7px;
   height: 7px;
   border-radius: 50%;
@@ -341,6 +371,7 @@ html[data-locale='zh-CN'] .lead {
   color: var(--ink-soft);
   font-size: 15px;
   line-height: 1.48;
+  text-wrap: pretty;
 }
 
 .format-tabs {
@@ -365,6 +396,57 @@ html[data-locale='zh-CN'] .lead {
   border-color: var(--jade);
   color: var(--paper);
   background: var(--jade);
+}
+
+.session-route {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 26px;
+  margin: 0 9px 20px;
+  padding: 14px 15px 14px 18px;
+  border: 1px solid oklch(0.89 0.024 171);
+  border-radius: var(--radius-md);
+  background: var(--jade-wash);
+}
+
+.session-route-copy {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.session-route-title {
+  color: var(--jade-deep);
+  font-size: 16px;
+}
+
+.session-route-copy p:last-child {
+  color: var(--ink-soft);
+  font-size: 14px;
+  line-height: 1.48;
+  text-wrap: pretty;
+}
+
+.session-link {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  min-height: 43px;
+  padding: 0 17px;
+  border: 1px solid var(--jade);
+  border-radius: var(--radius-sm);
+  color: var(--jade-deep);
+  background: var(--paper-high);
+  text-decoration: none;
+  transition:
+    transform 120ms cubic-bezier(0.16, 1, 0.3, 1),
+    background-color 120ms ease;
+}
+
+.session-link:active {
+  transform: scale(0.975);
 }
 
 .conversion-grid {
@@ -647,6 +729,10 @@ textarea::placeholder {
     border-color: var(--line);
     background: var(--paper);
   }
+
+  .session-link:hover {
+    background: var(--jade-pale);
+  }
 }
 
 @media (max-width: 1050px) {
@@ -693,10 +779,12 @@ textarea::placeholder {
   }
 
   .locale-switch button {
-    min-width: 54px;
     min-height: 39px;
-    padding: 0 9px;
     font-size: 14px;
+  }
+
+  .locale-switch {
+    width: 158px;
   }
 
   .workspace {
@@ -754,6 +842,18 @@ textarea::placeholder {
     font-size: 12px;
   }
 
+  .session-route {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 13px;
+    margin: 0 9px 12px;
+    padding: 13px;
+  }
+
+  .session-link {
+    width: 100%;
+  }
+
   .editor {
     min-height: 0;
     padding: 16px 14px;
@@ -776,7 +876,8 @@ textarea::placeholder {
   }
 
   .toolbar button {
-    padding: 0 13px;
+    padding: 0 10px;
+    font-size: 13px;
   }
 
   .ledger article {
@@ -810,7 +911,8 @@ textarea::placeholder {
   }
 
   .locale-switch {
-    margin-left: auto;
+    width: 190px;
+    margin: 3px auto 0;
   }
 }
 

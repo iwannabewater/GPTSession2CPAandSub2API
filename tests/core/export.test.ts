@@ -168,7 +168,7 @@ describe('exportCredentials', () => {
       meta: {
         label: 'lin@local.invalid',
         issuer: 'https://chatgpt.com',
-        note: 'Imported from a local session conversion.',
+        note: 'Converted locally by Auth Session Bridge.',
         status: 'active',
         workspaceId: 'workspace_verified',
         chatgptAccountId: 'acct_verified',

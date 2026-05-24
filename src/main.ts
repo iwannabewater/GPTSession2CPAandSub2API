@@ -1,4 +1,5 @@
 import 'charter-webfont/charter.css';
+import 'lxgw-wenkai-screen-webfont/lxgwwenkaigbscreen.css';
 import './styles.css';
 import { mountApp } from './ui/app';
 

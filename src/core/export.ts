@@ -171,7 +171,7 @@ function buildCodexManager(credential: Credential, options: ExportOptions): Json
     meta: compactObject({
       label: credential.email ?? credential.accountId ?? 'ChatGPT account',
       issuer: 'https://chatgpt.com',
-      note: 'Imported from a local session conversion.',
+      note: 'Converted locally by Auth Session Bridge.',
       status: 'active',
       workspaceId: credential.workspaceId,
       chatgptAccountId: credential.chatgptAccountId,

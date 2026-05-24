@@ -230,9 +230,6 @@ function setLocale(elements: Elements, state: AppState, locale: Locale): void {
   state.locale = locale;
   document.documentElement.lang = locale;
   document.documentElement.dataset.locale = locale;
-  if (locale === 'zh-CN') {
-    void import('lxgw-wenkai-screen-webfont/lxgwwenkaigbscreen.css');
-  }
   elements.translated.forEach((element) => {
     const key = element.dataset.i18n as MessageKey | undefined;
     if (key) {
@@ -461,10 +458,10 @@ function template(): string {
           <p class="subtitle" data-i18n="subtitle"></p>
         </div>
       </div>
-      <nav class="locale-switch" aria-label="Language" data-i18n-label="localeLabel">
+      <div class="locale-switch" role="group" aria-label="Language" data-i18n-label="localeLabel">
         <button type="button" data-locale="zh-CN" aria-pressed="false" data-i18n="chinese"></button>
         <button type="button" data-locale="en" aria-pressed="false" data-i18n="english"></button>
-      </nav>
+      </div>
     </header>
     <main class="workspace" id="workspace">
       <section class="hero" aria-labelledby="page-title">
@@ -476,11 +473,20 @@ function template(): string {
         <aside class="trust-card" aria-label="Credential safety" data-i18n-label="safetyLabel">
           <p class="kicker" data-i18n="boundaryTitle"></p>
           <p class="boundary-body" data-i18n="boundaryBody"></p>
-          <ul>
-            <li data-i18n="safetyLocal"></li>
-            <li data-i18n="safetyNetwork"></li>
-            <li data-i18n="safetyClipboard"></li>
-          </ul>
+          <dl class="boundary-facts">
+            <div>
+              <dt data-i18n="processingLabel"></dt>
+              <dd data-i18n="processingValue"></dd>
+            </div>
+            <div>
+              <dt data-i18n="storageLabel"></dt>
+              <dd data-i18n="storageValue"></dd>
+            </div>
+            <div>
+              <dt data-i18n="networkLabel"></dt>
+              <dd data-i18n="networkValue"></dd>
+            </div>
+          </dl>
         </aside>
       </section>
       <section class="studio">
@@ -499,6 +505,19 @@ function template(): string {
             <button type="button" data-format="codex-manager" aria-pressed="false">Codex-Manager</button>
           </div>
         </header>
+        <aside class="session-route" aria-label="ChatGPT Session shortcut" data-i18n-label="sessionSourceLabel">
+          <div class="session-route-copy">
+            <p class="session-route-title" data-i18n="sessionSourceTitle"></p>
+            <p data-i18n="sessionSourceBody"></p>
+          </div>
+          <a
+            class="session-link"
+            href="https://chatgpt.com/api/auth/session"
+            target="_blank"
+            rel="noopener noreferrer"
+            data-i18n="sessionOpen"
+          ></a>
+        </aside>
         <div class="conversion-grid">
         <section class="editor input-panel" aria-labelledby="input-title">
           <header class="panel-head">
