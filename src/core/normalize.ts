@@ -6,7 +6,7 @@ import {
   tokenExpiry,
 } from './jwt';
 import type { Credential, JsonObject, JsonValue, SourceKind } from './types';
-import { isoTimestamp, objectValue, stringValue } from './value';
+import { isoTimestamp, objectValue, preservedTimestamp, stringValue } from './value';
 
 interface CandidateLocation {
   readonly sourceName: string;
@@ -15,6 +15,13 @@ interface CandidateLocation {
 
 function kindOf(record: JsonObject): SourceKind {
   const tokens = objectValue(record.tokens);
+  if (
+    stringValue(record.auth_mode) === 'chatgpt' &&
+    tokens &&
+    Object.hasOwn(record, 'OPENAI_API_KEY')
+  ) {
+    return 'codex-auth';
+  }
   if (stringValue(record.auth_mode) === 'chatgpt' && tokens) {
     return 'axonhub';
   }
@@ -166,7 +173,7 @@ export function normalizeCredential(
     ),
     ...optional(
       'lastRefresh',
-      isoTimestamp(record.last_refresh) ?? isoTimestamp(record.lastRefresh),
+      preservedTimestamp(record.last_refresh) ?? preservedTimestamp(record.lastRefresh),
     ),
   };
 }

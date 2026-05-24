@@ -6,6 +6,54 @@ import { credential, fixedNow } from './helpers';
 const options = { includeSyntheticIdToken: false, now: fixedNow };
 
 describe('exportCredentials', () => {
+  it('emits the Codex Auth document shape without altering provided login material', () => {
+    const result = exportCredentials(
+      'codex-auth',
+      [
+        credential({
+          idToken: 'fixture.id.signed',
+          refreshToken: 'fixture.refresh.invalid',
+          lastRefresh: '2026-05-23T17:32:21.088674585Z',
+        }),
+      ],
+      options,
+    );
+
+    expect(result.document).toEqual({
+      auth_mode: 'chatgpt',
+      OPENAI_API_KEY: null,
+      tokens: {
+        id_token: 'fixture.id.signed',
+        access_token: credential().accessToken,
+        refresh_token: 'fixture.refresh.invalid',
+        account_id: 'acct_verified',
+      },
+      last_refresh: '2026-05-23T17:32:21.088674585Z',
+    });
+    expect(result.warnings).toEqual([]);
+  });
+
+  it('does not manufacture missing Codex Auth login material', () => {
+    const result = exportCredentials('codex-auth', [credential()], {
+      includeSyntheticIdToken: true,
+      now: fixedNow,
+    });
+
+    expect(result.document).toMatchObject({
+      auth_mode: 'chatgpt',
+      OPENAI_API_KEY: null,
+      tokens: { access_token: credential().accessToken, account_id: 'acct_verified' },
+    });
+    expect((result.document as { tokens: Record<string, string> }).tokens).not.toHaveProperty(
+      'id_token',
+    );
+    expect((result.document as { tokens: Record<string, string> }).tokens).not.toHaveProperty(
+      'refresh_token',
+    );
+    expect(result.warnings.map((warning) => warning.code)).toContain('CODEX_AUTH_INCOMPLETE');
+    expect(result.warnings.map((warning) => warning.code)).not.toContain('SYNTHETIC_ID_TOKEN');
+  });
+
   it('emits canonical sub2api batch data with access-token expiry fields', () => {
     const source = credential();
     const result = exportCredentials('sub2api', [source], options);
@@ -137,7 +185,7 @@ describe('exportCredentials', () => {
 
     expect(Array.isArray(result.document)).toBe(true);
     expect(omittedAccountId).toBe('acct_verified');
-    expect(result.filename).toBe('session-bridge-cpa-2-20260524T000000Z.json');
+    expect(result.filename).toBe('auth-session-bridge-cpa-2-20260524T000000Z.json');
     expect(result.warnings.map((warning) => warning.code)).toEqual(
       expect.arrayContaining(['MULTI_DOCUMENT_OUTPUT', 'NO_REFRESH_TOKEN', 'NO_ACCOUNT_ID']),
     );

@@ -1,23 +1,20 @@
-# Security policy
+# Security
 
-Session Bridge handles bearer credentials. A copied input or output can grant account access until the credential expires or is revoked.
+Auth Session Bridge converts bearer credentials in the browser. Treat pasted input and every exported document as a password.
 
-## Product guarantees
+## Data handling
 
-- Parsing and export occur entirely in the browser.
-- The application makes no API requests and writes no credential data to browser storage.
-- The deployed page supplies a restrictive Content Security Policy, including `connect-src 'none'`.
-- Credential values appear only in the input editor, generated output, an explicit clipboard copy, or an explicit download.
-- Repository fixtures use invalid sample identities and are not usable credentials.
+- Parsing and export run in the browser.
+- The application does not persist credentials or send them to an external service.
+- The deployed HTML applies a Content Security Policy with `connect-src 'none'` to disable runtime API connections.
+- The built-in example and repository tests use non-working placeholder credentials.
 
-GitHub Pages cannot set every security response header. The application therefore enforces applicable policy through HTML metadata and does not rely on server-side storage or processing.
+The application is deployed as static files on GitHub Pages. There is no server-side credential processing component in this repository.
 
-## Safe use
+## Using real credentials
 
-Use the tool only on a trusted device and browser profile. Clear copied credentials from clipboard history where the operating system supports it. If a real credential has been exposed, revoke the session through the account security controls rather than relying on deletion of the copied JSON.
+Use a trusted device and browser profile. After importing an exported document, clear downloaded copies and clipboard history where available. If a credential is exposed, revoke it through the relevant account security controls.
 
 ## Reporting a vulnerability
 
-Do not include real tokens or session JSON in a report. Report vulnerabilities privately through GitHub Security Advisories for this repository, with a minimal non-secret reproduction.
-
-Only the latest deployed `main` branch is supported for security fixes.
+Do not include real tokens, session exports, or screenshots containing credentials in a report. Use GitHub's private vulnerability reporting channel for this repository when available, with a minimal reproduction built from placeholder values.

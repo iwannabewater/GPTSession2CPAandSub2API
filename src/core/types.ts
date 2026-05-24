@@ -3,6 +3,7 @@ export type JsonValue = JsonPrimitive | JsonObject | JsonValue[];
 export type JsonObject = { [key: string]: JsonValue };
 
 export const outputFormats = [
+  'codex-auth',
   'sub2api',
   'cpa',
   'cockpit',
@@ -15,6 +16,7 @@ export type OutputFormat = (typeof outputFormats)[number];
 
 export type SourceKind =
   | 'chatgpt-session'
+  | 'codex-auth'
   | 'cpa-or-cockpit'
   | 'sub2api'
   | '9router'
@@ -78,6 +80,7 @@ export interface ParseReport {
 export type ExportWarningCode =
   | 'NO_REFRESH_TOKEN'
   | 'NO_ACCOUNT_ID'
+  | 'CODEX_AUTH_INCOMPLETE'
   | 'SYNTHETIC_ID_TOKEN'
   | 'MULTI_DOCUMENT_OUTPUT'
   | 'ACCESS_TOKEN_IMPORT_ONLY';

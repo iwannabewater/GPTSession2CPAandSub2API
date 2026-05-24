@@ -5,8 +5,9 @@ import {
   type ExportReport,
   type OutputFormat,
   type ParseReport,
+  type SourceKind,
 } from '../core/types';
-import { preferredLocale, translate, type Locale, type MessageKey } from '../i18n';
+import { translate, type Locale, type MessageKey } from '../i18n';
 
 interface AppState {
   locale: Locale;
@@ -19,13 +20,34 @@ interface AppState {
 }
 
 const emptyReport: ParseReport = { credentials: [], issues: [] };
+const formatDescriptions: Record<OutputFormat, MessageKey> = {
+  'codex-auth': 'formatCodexAuth',
+  sub2api: 'formatSub2api',
+  cpa: 'formatCpa',
+  cockpit: 'formatCockpit',
+  '9router': 'format9router',
+  axonhub: 'formatAxonhub',
+  'codex-manager': 'formatCodexManager',
+};
+const syntheticFormats: readonly OutputFormat[] = ['cpa', 'cockpit', 'axonhub'];
+
+const sourceDescriptions: Record<SourceKind, MessageKey> = {
+  'chatgpt-session': 'sourceChatgptSession',
+  'codex-auth': 'sourceCodexAuth',
+  'cpa-or-cockpit': 'sourcePortable',
+  sub2api: 'sourceSub2api',
+  '9router': 'source9router',
+  axonhub: 'sourceAxonhub',
+  'codex-manager': 'sourceCodexManager',
+  'credential-json': 'sourceCredentialJson',
+};
 
 export function mountApp(root: HTMLElement): void {
   // This markup is authored UI only; credential values are rendered through value or textContent.
   root.innerHTML = template();
   const elements = collectElements(root);
   const state: AppState = {
-    locale: preferredLocale(navigator.language),
+    locale: 'zh-CN',
     format: 'sub2api',
     includeSyntheticIdToken: false,
     report: emptyReport,
@@ -238,6 +260,13 @@ function updateView(elements: Elements, state: AppState): void {
   elements.formatButtons.forEach((button) => {
     button.setAttribute('aria-pressed', String(button.dataset.format === state.format));
   });
+  elements.formatDescription.textContent = translate(
+    state.locale,
+    formatDescriptions[state.format],
+  );
+  const acceptsSyntheticToken = syntheticFormats.includes(state.format);
+  elements.syntheticArea.hidden = !acceptsSyntheticToken;
+  elements.synthetic.disabled = !acceptsSyntheticToken;
   if (state.report.credentials.length > 0) {
     state.exported = exportCredentials(state.format, state.report.credentials, {
       includeSyntheticIdToken: state.includeSyntheticIdToken,
@@ -287,7 +316,7 @@ function renderAccounts(elements: Elements, state: AppState): void {
       state.locale,
       credential.refreshToken ? 'refreshReady' : 'accessOnly',
     );
-    meta.textContent = `${credential.sourceKind} / ${refresh}`;
+    meta.textContent = `${translate(state.locale, sourceDescriptions[credential.sourceKind])} / ${refresh}`;
     const expiry = document.createElement('span');
     expiry.textContent = credential.expiresAt
       ? `${translate(state.locale, 'expiry')}: ${new Date(credential.expiresAt).toLocaleString(state.locale)}`
@@ -313,7 +342,8 @@ function renderIssues(elements: Elements, state: AppState): void {
     })),
   ];
   if (entries.length === 0) {
-    elements.issues.append(createEmpty(translate(state.locale, 'empty')));
+    const emptyKey = state.report.credentials.length === 0 ? 'empty' : 'noIssues';
+    elements.issues.append(createEmpty(translate(state.locale, emptyKey)));
     return;
   }
   entries.forEach(({ tone, message, suffix }) => {
@@ -374,6 +404,8 @@ interface Elements {
   outputStatus: HTMLElement;
   accounts: HTMLUListElement;
   issues: HTMLUListElement;
+  formatDescription: HTMLElement;
+  syntheticArea: HTMLElement;
   translated: NodeListOf<HTMLElement>;
   translatedLabels: NodeListOf<HTMLElement>;
   localeButtons: NodeListOf<HTMLButtonElement>;
@@ -396,6 +428,8 @@ function collectElements(root: HTMLElement): Elements {
     outputStatus: required(root, '#output-status'),
     accounts: required(root, '#accounts'),
     issues: required(root, '#issues'),
+    formatDescription: required(root, '#format-description'),
+    syntheticArea: required(root, '#synthetic-area'),
     translated: root.querySelectorAll('[data-i18n]'),
     translatedLabels: root.querySelectorAll('[data-i18n-label]'),
     localeButtons: root.querySelectorAll('[data-locale]'),
@@ -415,44 +449,64 @@ function template(): string {
   return `
     <header class="masthead">
       <div class="identity">
-        <div class="mark" aria-hidden="true">SB</div>
+        <svg class="brand-mark" viewBox="0 0 48 48" aria-hidden="true">
+          <rect x="1" y="1" width="46" height="46" rx="14"></rect>
+          <path d="M10 30V25C10 18.9 14.9 14 21 14H27C33.1 14 38 18.9 38 25V30"></path>
+          <path d="M15 30V25.5C15 22 17.8 19 21.5 19H26.5C30.2 19 33 22 33 25.5V30"></path>
+          <path d="M9 33H39"></path>
+          <circle cx="24" cy="27" r="2"></circle>
+        </svg>
         <div>
           <div class="wordmark" data-i18n="title"></div>
           <p class="subtitle" data-i18n="subtitle"></p>
         </div>
       </div>
       <nav class="locale-switch" aria-label="Language" data-i18n-label="localeLabel">
-        <button type="button" data-locale="en" aria-pressed="false" data-i18n="english"></button>
         <button type="button" data-locale="zh-CN" aria-pressed="false" data-i18n="chinese"></button>
+        <button type="button" data-locale="en" aria-pressed="false" data-i18n="english"></button>
       </nav>
     </header>
-    <aside class="safety-rail" aria-label="Credential safety" data-i18n-label="safetyLabel">
-      <span class="pulse" aria-hidden="true"></span>
-      <strong data-i18n="safetyLocal"></strong>
-      <span data-i18n="safetyNetwork"></span>
-      <span data-i18n="safetyClipboard"></span>
-    </aside>
     <main class="workspace" id="workspace">
-      <section class="introduction" aria-labelledby="page-title">
-        <h1 id="page-title" data-i18n="heading"></h1>
-        <p data-i18n="lead"></p>
-      </section>
-      <section class="format-bar" aria-labelledby="format-label">
-        <span id="format-label" data-i18n="formatLabel"></span>
-        <div class="format-tabs" role="group" aria-labelledby="format-label">
-          <button type="button" data-format="sub2api" aria-pressed="true">sub2api</button>
-          <button type="button" data-format="cpa" aria-pressed="false">CPA</button>
-          <button type="button" data-format="cockpit" aria-pressed="false">Cockpit</button>
-          <button type="button" data-format="9router" aria-pressed="false">9router</button>
-          <button type="button" data-format="axonhub" aria-pressed="false">AxonHub</button>
-          <button type="button" data-format="codex-manager" aria-pressed="false">Codex-Manager</button>
+      <section class="hero" aria-labelledby="page-title">
+        <div class="hero-copy">
+          <p class="eyebrow" data-i18n="eyebrow"></p>
+          <h1 id="page-title" data-i18n="heading"></h1>
+          <p class="lead" data-i18n="lead"></p>
         </div>
+        <aside class="trust-card" aria-label="Credential safety" data-i18n-label="safetyLabel">
+          <p class="kicker" data-i18n="boundaryTitle"></p>
+          <p class="boundary-body" data-i18n="boundaryBody"></p>
+          <ul>
+            <li data-i18n="safetyLocal"></li>
+            <li data-i18n="safetyNetwork"></li>
+            <li data-i18n="safetyClipboard"></li>
+          </ul>
+        </aside>
       </section>
-      <div class="conversion-grid">
+      <section class="studio">
+        <header class="format-bar" aria-labelledby="format-label">
+          <div class="format-context">
+            <p class="kicker" id="format-label" data-i18n="formatLabel"></p>
+            <p id="format-description" class="format-description"></p>
+          </div>
+          <div class="format-tabs" role="group" aria-labelledby="format-label">
+            <button type="button" data-format="sub2api" aria-pressed="true">sub2api</button>
+            <button type="button" data-format="codex-auth" aria-pressed="false">Codex Auth</button>
+            <button type="button" data-format="cpa" aria-pressed="false">CPA</button>
+            <button type="button" data-format="cockpit" aria-pressed="false">Cockpit</button>
+            <button type="button" data-format="9router" aria-pressed="false">9router</button>
+            <button type="button" data-format="axonhub" aria-pressed="false">AxonHub</button>
+            <button type="button" data-format="codex-manager" aria-pressed="false">Codex-Manager</button>
+          </div>
+        </header>
+        <div class="conversion-grid">
         <section class="editor input-panel" aria-labelledby="input-title">
-          <header>
-            <h2 id="input-title" data-i18n="inputTitle"></h2>
-            <p data-i18n="inputHelp"></p>
+          <header class="panel-head">
+            <span class="step" data-i18n="inputStep"></span>
+            <div>
+              <h2 id="input-title" data-i18n="inputTitle"></h2>
+              <p data-i18n="inputHelp"></p>
+            </div>
           </header>
           <textarea id="session-input" spellcheck="false" autocomplete="off"></textarea>
           <input id="file-input" class="visually-hidden" type="file" multiple accept=".json,application/json" />
@@ -468,23 +522,29 @@ function template(): string {
           <p class="status" id="input-status" role="status"></p>
         </section>
         <section class="editor output-panel" aria-labelledby="output-title">
-          <header>
-            <h2 id="output-title" data-i18n="outputTitle"></h2>
-            <p data-i18n="outputHelp"></p>
+          <header class="panel-head">
+            <span class="step" data-i18n="outputStep"></span>
+            <div>
+              <h2 id="output-title" data-i18n="outputTitle"></h2>
+              <p data-i18n="outputHelp"></p>
+            </div>
           </header>
           <textarea id="output" readonly spellcheck="false"></textarea>
-          <label class="synthetic-toggle">
-            <input id="synthetic" type="checkbox" />
-            <span data-i18n="synthetic"></span>
-          </label>
-          <p class="synthetic-note" data-i18n="syntheticWarning"></p>
+          <div id="synthetic-area" class="synthetic-area">
+            <label class="synthetic-toggle">
+              <input id="synthetic" type="checkbox" />
+              <span data-i18n="synthetic"></span>
+            </label>
+            <p class="synthetic-note" data-i18n="syntheticWarning"></p>
+          </div>
           <div class="toolbar">
             <button class="primary" id="copy-output" type="button" disabled data-i18n="copy"></button>
             <button class="action" id="download-output" type="button" disabled data-i18n="download"></button>
           </div>
           <p class="status" id="output-status" role="status"></p>
         </section>
-      </div>
+        </div>
+      </section>
       <section class="ledger" aria-label="Conversion details" data-i18n-label="detailsLabel">
         <article>
           <h2 data-i18n="accounts"></h2>

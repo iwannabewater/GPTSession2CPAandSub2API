@@ -13,6 +13,10 @@ export default defineConfig({
   projects: [
     { name: 'desktop-chromium', use: { ...devices['Desktop Chrome'] } },
     { name: 'mobile-chromium', use: { ...devices['Pixel 5'] } },
+    {
+      name: 'narrow-mobile',
+      use: { viewport: { width: 320, height: 900 }, isMobile: true, hasTouch: true },
+    },
   ],
   webServer: {
     command: 'npm run preview -- --host 127.0.0.1 --port 4173',

@@ -1,4 +1,4 @@
-Third-party notices for fonts distributed with Session Bridge
+Third-party notices for fonts distributed with Auth Session Bridge
 ==============================================================
 
 charter-webfont and lxgw-wenkai-screen-webfont packaging

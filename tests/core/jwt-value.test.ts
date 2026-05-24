@@ -12,6 +12,7 @@ import {
   isoTimestamp,
   numberValue,
   objectValue,
+  preservedTimestamp,
   stringValue,
 } from '../../src/core/value';
 import { fixedNow, jwt } from './helpers';
@@ -53,6 +54,9 @@ describe('JWT and JSON primitives', () => {
     expect(isoTimestamp('2030-01-01T00:00:00Z')).toBe('2030-01-01T00:00:00.000Z');
     expect(isoTimestamp(1893456000)).toBe('2030-01-01T00:00:00.000Z');
     expect(isoTimestamp('invalid')).toBeUndefined();
+    expect(preservedTimestamp('2026-05-23T17:32:21.088674585Z')).toBe(
+      '2026-05-23T17:32:21.088674585Z',
+    );
     expect(compactObject({ included: 'yes', omitted: undefined })).toEqual({ included: 'yes' });
   });
 });

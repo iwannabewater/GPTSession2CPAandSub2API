@@ -7,6 +7,18 @@ const session = {
     'eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6ImJyb3dzZXJAbG9jYWwuaW52YWxpZCIsImV4cCI6MTg5MzQ1NjAwMCwiaHR0cHM6Ly9hcGkub3BlbmFpLmNvbS9hdXRoIjp7ImNoYXRncHRfYWNjb3VudF9pZCI6ImFjY3RfYnJvd3NlciIsImNoYXRncHRfcGxhbl90eXBlIjoicGx1cyJ9fQ.signature',
 };
 
+const codexAuthFixture = {
+  auth_mode: 'chatgpt',
+  OPENAI_API_KEY: null,
+  tokens: {
+    id_token: 'fixture.id.signed',
+    access_token: session.accessToken,
+    refresh_token: 'fixture.refresh.invalid',
+    account_id: 'acct_browser',
+  },
+  last_refresh: '2026-05-23T17:32:21.088674585Z',
+};
+
 test('converts local input, switches locale and does not persist secrets', async ({
   page,
   context,
@@ -19,12 +31,18 @@ test('converts local input, switches locale and does not persist secrets', async
     }
   });
   await page.goto('/');
+  await expect(page.locator('html')).toHaveAttribute('lang', 'zh-CN');
+  await expect(page.getByRole('heading', { level: 1 })).toContainText('本地转换凭证');
+  await expect(page.locator('#issues')).toContainText('尚未识别到凭证');
+  expect(
+    await page.evaluate(() => getComputedStyle(document.body).fontFamily.includes('LXGW WenKai')),
+  ).toBe(true);
   await page.locator('#session-input').fill(JSON.stringify(session));
 
   const output = page.locator('#output');
   await expect(output).toHaveValue(/"type": "sub2api-data"/u);
   await expect(output).toHaveValue(/"chatgpt_account_id": "acct_browser"/u);
-  await expect(page.locator('#issues')).toContainText('No refresh token present');
+  await expect(page.locator('#issues')).toContainText('未包含 refresh token');
   const exportedAt = (JSON.parse(await output.inputValue()) as { exported_at: string }).exported_at;
   await page.getByRole('button', { name: 'CPA' }).click();
   await page.getByRole('button', { name: 'sub2api' }).click();
@@ -32,19 +50,19 @@ test('converts local input, switches locale and does not persist secrets', async
     exportedAt,
   );
 
-  await page.getByRole('button', { name: '中文' }).click();
-  await expect(page.locator('html')).toHaveAttribute('lang', 'zh-CN');
-  await expect(page.getByRole('heading', { level: 1 })).toContainText('转换登录 Session');
+  await page.getByRole('button', { name: 'English' }).click();
+  await expect(page.locator('html')).toHaveAttribute('lang', 'en');
+  await expect(page.getByRole('heading', { level: 1 })).toContainText('Move authentication');
   expect(
-    await page.evaluate(() => getComputedStyle(document.body).fontFamily.includes('LXGW WenKai')),
+    await page.evaluate(() => getComputedStyle(document.body).fontFamily.includes('Charter')),
   ).toBe(true);
 
   await context.grantPermissions(['clipboard-read', 'clipboard-write']);
-  await page.getByRole('button', { name: '复制 JSON' }).click();
+  await page.getByRole('button', { name: 'Copy JSON' }).click();
   expect(await page.evaluate(() => navigator.clipboard.readText())).toContain('"sub2api-data"');
   const downloadEvent = page.waitForEvent('download');
-  await page.getByRole('button', { name: '下载 JSON' }).click();
-  expect((await downloadEvent).suggestedFilename()).toContain('session-bridge-sub2api');
+  await page.getByRole('button', { name: 'Download JSON' }).click();
+  expect((await downloadEvent).suggestedFilename()).toContain('auth-session-bridge-sub2api');
 
   expect(foreignRequests).toEqual([]);
   expect(
@@ -78,7 +96,25 @@ test('accepts an actual dropped JSON file and keeps outputs honest about renewal
   await page.getByRole('button', { name: 'CPA' }).click();
   await page.locator('#synthetic').check();
   await expect(page.locator('#output')).toHaveValue(/\.synthetic/u);
-  await expect(page.locator('#issues')).toContainText('synthetic ID token');
+  await expect(page.locator('#issues')).toContainText('合成 ID token');
+});
+
+test('emits Codex Auth only from supplied login material and warns on incomplete sessions', async ({
+  page,
+}) => {
+  await page.goto('/');
+  await dropJson(page, codexAuthFixture);
+  await page.getByRole('button', { name: 'Codex Auth' }).click();
+
+  expect(JSON.parse(await page.locator('#output').inputValue())).toEqual(codexAuthFixture);
+  await expect(page.locator('#issues')).not.toContainText('Codex Auth 不完整');
+  await expect(page.locator('#issues')).toContainText('未发现需要处理的问题');
+  await expect(page.locator('#synthetic-area')).toBeHidden();
+
+  await page.locator('#session-input').fill(JSON.stringify(session));
+  await expect(page.locator('#issues')).toContainText('Codex Auth 不完整');
+  expect(await page.locator('#output').inputValue()).not.toContain('"id_token"');
+  expect(await page.locator('#output').inputValue()).not.toContain('"refresh_token"');
 });
 
 test('rejects oversized dropped files before producing output', async ({ page }) => {
@@ -95,7 +131,7 @@ test('rejects oversized dropped files before producing output', async ({ page })
       ?.dispatchEvent(new DragEvent('drop', { bubbles: true, cancelable: true, dataTransfer }));
   });
 
-  await expect(page.locator('#issues')).toContainText('exceeds the 4 MiB processing limit');
+  await expect(page.locator('#issues')).toContainText('输入超过 4 MiB');
   await expect(page.locator('#output')).toHaveValue('');
 });
 
@@ -113,7 +149,7 @@ test('rejects a multi-file batch that exceeds combined size limits', async ({ pa
       ?.dispatchEvent(new DragEvent('drop', { bubbles: true, cancelable: true, dataTransfer }));
   });
 
-  await expect(page.locator('#issues')).toContainText('exceeds the 4 MiB processing limit');
+  await expect(page.locator('#issues')).toContainText('输入超过 4 MiB');
   await expect(page.locator('#output')).toHaveValue('');
 });
 
@@ -129,7 +165,7 @@ test('rejects an excessive number of selected files', async ({ page }) => {
       ?.dispatchEvent(new DragEvent('drop', { bubbles: true, cancelable: true, dataTransfer }));
   });
 
-  await expect(page.locator('#issues')).toContainText('no more than 250 JSON files');
+  await expect(page.locator('#issues')).toContainText('一次最多选择 250 个 JSON 文件');
   await expect(page.locator('#output')).toHaveValue('');
 });
 
@@ -143,26 +179,50 @@ test('maintains the two-panel workspace at desktop and a single-column flow on m
   expect(
     await skipLink.evaluate((element) => element.getBoundingClientRect().top),
   ).toBeGreaterThanOrEqual(0);
-  await page.getByRole('button', { name: 'Load safe example' }).click();
+  await page.getByRole('button', { name: '载入安全示例' }).click();
   expect(
     await skipLink.evaluate((element) => element.getBoundingClientRect().bottom),
   ).toBeLessThanOrEqual(0);
+  await page.waitForTimeout(150);
   await page.screenshot({
-    path: testInfo.outputPath('workspace.png'),
+    path: testInfo.outputPath('workspace-zh.png'),
     fullPage: true,
   });
 
   const columns = await page
     .locator('.conversion-grid')
     .evaluate((element) => getComputedStyle(element).gridTemplateColumns.split(' ').length);
-  expect(columns).toBe(testInfo.project.name === 'mobile-chromium' ? 1 : 2);
+  expect(columns).toBe(testInfo.project.name.includes('mobile') ? 1 : 2);
 
-  await page.getByRole('button', { name: '中文' }).click();
+  await page.getByRole('button', { name: 'English' }).click();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(
     true,
   );
+  await page.waitForTimeout(150);
   await page.screenshot({
-    path: testInfo.outputPath('workspace-zh.png'),
+    path: testInfo.outputPath('workspace-en.png'),
+    fullPage: true,
+  });
+
+  await page.getByRole('button', { name: '中文' }).click();
+  await dropJson(page, codexAuthFixture);
+  await page.getByRole('button', { name: 'Codex Auth' }).click();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(
+    true,
+  );
+  await page.waitForTimeout(150);
+  await page.screenshot({
+    path: testInfo.outputPath('codex-auth-zh.png'),
+    fullPage: true,
+  });
+
+  await page.getByRole('button', { name: 'English' }).click();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(
+    true,
+  );
+  await page.waitForTimeout(150);
+  await page.screenshot({
+    path: testInfo.outputPath('codex-auth-en.png'),
     fullPage: true,
   });
 });

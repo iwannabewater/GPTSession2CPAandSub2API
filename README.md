@@ -1,60 +1,52 @@
-# Session Bridge
+# Auth Session Bridge
 
 [中文文档](./README.zh-CN.md)
 
-A local-only browser tool that converts ChatGPT session or Codex-compatible credential JSON into import documents for CPA / CLIProxyAPI, sub2api, Cockpit Tools, 9router, AxonHub, and Codex-Manager.
+Convert ChatGPT Session or Codex credential JSON into import documents for other tools, entirely in the browser. The interface opens in Chinese and can be switched to English.
 
-[Open the deployed application](https://whynotsleep.cc/GPTSession2CPAandSub2API/)
+[Open the application](https://whynotsleep.cc/auth-session-bridge/)
 
-## Security first
+## Before using it
 
-The input and output contain access credentials. Treat them like passwords.
+Both input and exported documents may grant account access. Work on a trusted device, then clear downloaded files and clipboard history after import.
 
-- Conversion runs in the browser. The application has no upload, telemetry, or persistence path.
-- A Content Security Policy blocks runtime connections from the deployed page.
-- Pasted input or a selected file batch larger than 4 MiB, excessive nesting, and oversized account batches are rejected before conversion.
-- Access-token-only accounts cannot renew themselves after expiry.
-- Synthetic ID tokens are disabled by default. When explicitly enabled, they carry compatibility claims only and are visibly warned as unauthenticated.
+- Conversion stays in the current page: no uploads, telemetry, or credential writes to browser storage.
+- The page sends no credentials to external services, and its security policy disables runtime API connections.
+- Inputs larger than 4 MiB, excessive nesting, and batches larger than 250 accounts are rejected.
+- An account with only an `access token` cannot renew after expiry; the page reports this plainly.
+- Synthetic `ID token` generation is off by default and cannot substitute for real sign-in credentials.
 
-Do not commit credential JSON, paste it into issues, or share it in chat logs.
+Never commit real credentials, paste them into issues, include them in screenshots, or send them through chat.
 
-## Use
+## Usage
 
-Open the GitHub Pages deployment, paste JSON or drop one or more `.json` files, select an output format, then copy or download the generated document. Use the `English / 中文` control to switch the complete interface language.
+1. Open the application and paste JSON, or drop one or more `.json` files.
+2. Select an output format and review the checks.
+3. Copy or download the exported document and import it into the target tool.
 
-To retrieve a ChatGPT Web session, sign in to ChatGPT in a separate browser tab and open `https://chatgpt.com/api/auth/session`. Copy the returned JSON only into this local converter. It contains sensitive credentials.
+To convert a ChatGPT Web Session, sign in to ChatGPT in a separate browser tab, visit `https://chatgpt.com/api/auth/session`, and paste the returned JSON only into this tool.
 
-The safe example in the page uses an invalid local-domain identity and a non-authenticating sample token. It is suitable for UI evaluation only.
+`Codex Auth` produces a document shaped like `~/.codex/auth.json`. It forwards the supplied `id_token`, `access_token`, `refresh_token`, and `account_id` fields; if sign-in fields are absent, it reports an incomplete document instead of inventing them.
 
-## Format support
+The built-in safe example is for inspecting the interface and output shapes only. Its identity and tokens cannot authenticate.
 
-| Output          | Export behavior                                                                                           |
-| --------------- | --------------------------------------------------------------------------------------------------------- |
-| `sub2api`       | Canonical batch payload with `type: "sub2api-data"`, `version: 1`, per-account expiry and pause behavior. |
-| `CPA`           | Portable flat Codex token storage accepted by CLIProxyAPI-compatible flows.                               |
-| `Cockpit`       | Portable flat Codex token storage used by Cockpit Tools.                                                  |
-| `9router`       | Verified direct access-token import document; it does not claim OAuth renewal capability.                 |
-| `AxonHub`       | ChatGPT auth JSON; `refresh_token` is included only when it exists in the input.                          |
-| `Codex-Manager` | Token payload with current metadata keys, including `workspaceId` and `chatgptAccountId` when detected.   |
+## Formats
 
-Recognized inputs include ChatGPT Web session JSON, JWT-only access-token JSON, and exports from each supported target. Identity and expiry hints may be decoded from JWT payloads; decoding is not token verification.
+| Output          | Behavior                                                                                     |
+| --------------- | -------------------------------------------------------------------------------------------- |
+| `Codex Auth`    | `~/.codex/auth.json` shape, forwarding only supplied sign-in fields.                         |
+| `sub2api`       | Batch payload with expiry and automatic-pause fields.                                        |
+| `CPA`           | Flat Codex token document used by CPA / CLIProxyAPI.                                         |
+| `Cockpit`       | Flat Codex token document used by Cockpit Tools.                                             |
+| `9router`       | Direct `access token` import without claiming renewal capability.                            |
+| `AxonHub`       | ChatGPT auth document; exports `refresh_token` only when it was supplied.                    |
+| `Codex-Manager` | Token document with metadata fields such as `workspaceId` and `chatgptAccountId` when found. |
 
-## Engineering model
-
-```text
-src/core/parse.ts       bounded traversal of untrusted JSON
-src/core/normalize.ts   normalized credential record extraction
-src/core/export.ts      target-specific output contracts
-src/core/jwt.ts         claims decoding and explicit synthetic-token option
-src/ui/app.ts           browser interaction without persistence
-src/i18n.ts             typed English and Chinese catalog
-```
-
-The interface is a Vite-built static application written in strict TypeScript. Charter is bundled for English; the simplified Chinese LXGW WenKai Screen stylesheet is loaded only when the Chinese interface is selected.
+Recognized inputs include Codex Auth, ChatGPT Web Session, JWT `access token` JSON, and export structures from the listed tools. The application can decode identity and expiry hints from JWT payloads; it does not verify whether a token is valid.
 
 ## Development
 
-Requirements: Node.js 24 and npm.
+Requires Node.js 24 and npm.
 
 ```bash
 npm ci
@@ -63,12 +55,19 @@ npm run dev
 npm run verify
 ```
 
-`npm run verify` enforces formatting, linting, strict type checking, unit tests with coverage thresholds, a production build, and browser tests at desktop and mobile viewports.
+`npm run verify` runs formatting checks, linting, strict type checking, unit tests with coverage thresholds, a production build, and browser tests at desktop, mobile, and 320 px narrow viewports.
 
-## Compatibility maintenance
+Core modules:
 
-Format adapters are grounded in the current import or export implementations of CLIProxyAPI, sub2api, AxonHub, 9router, Cockpit Tools, and Codex-Manager. When a target changes its accepted document shape, update its adapter and fixtures together, then run the full verification command.
+```text
+src/core/parse.ts       bounded reading of untrusted JSON
+src/core/normalize.ts   normalized credential extraction
+src/core/export.ts      target document generation
+src/ui/app.ts           local UI behavior and user-facing checks
+```
+
+When adding or changing an adapter, commit only non-secret fixtures and test both complete and missing-field credentials.
 
 ## License
 
-MIT. Distributed font notices are included in [`public/licenses/THIRD-PARTY-NOTICES.txt`](./public/licenses/THIRD-PARTY-NOTICES.txt).
+MIT. Font license notices distributed with the build are in [`public/licenses/THIRD-PARTY-NOTICES.txt`](./public/licenses/THIRD-PARTY-NOTICES.txt).

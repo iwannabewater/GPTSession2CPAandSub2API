@@ -17,7 +17,7 @@ export function exportCredentials(
 ): ExportReport {
   const warnings: ExportWarning[] = [];
   credentials.forEach((credential) => {
-    if (!credential.refreshToken) {
+    if (!credential.refreshToken && format !== 'codex-auth') {
       addWarning(warnings, { code: 'NO_REFRESH_TOKEN', format });
     }
     if (!credential.accountId) {
@@ -43,6 +43,10 @@ function buildDocument(
   warnings: ExportWarning[],
 ): JsonValue {
   switch (format) {
+    case 'codex-auth':
+      return singleOrArray(
+        credentials.map((credential) => buildCodexAuth(credential, options, warnings)),
+      );
     case 'sub2api':
       return buildSub2api(credentials, options);
     case 'cpa':
@@ -60,6 +64,28 @@ function buildDocument(
     case 'codex-manager':
       return singleOrArray(credentials.map((credential) => buildCodexManager(credential, options)));
   }
+}
+
+function buildCodexAuth(
+  credential: Credential,
+  options: ExportOptions,
+  warnings: ExportWarning[],
+): JsonObject {
+  const usableIdToken = credential.idTokenSynthetic ? undefined : credential.idToken;
+  if (!usableIdToken || !credential.refreshToken || !credential.accountId) {
+    addWarning(warnings, { code: 'CODEX_AUTH_INCOMPLETE', format: 'codex-auth' });
+  }
+  return {
+    auth_mode: 'chatgpt',
+    OPENAI_API_KEY: null,
+    tokens: compactObject({
+      id_token: usableIdToken,
+      access_token: credential.accessToken,
+      refresh_token: credential.refreshToken,
+      account_id: credential.accountId,
+    }),
+    last_refresh: credential.lastRefresh ?? options.now.toISOString(),
+  };
 }
 
 function buildPortable(
@@ -189,5 +215,5 @@ function filenameFor(format: OutputFormat, count: number, now: Date): string {
     .toISOString()
     .replaceAll(/[-:]/gu, '')
     .replace(/\.\d{3}Z$/u, 'Z');
-  return `session-bridge-${format}-${count}-${stamp}.json`;
+  return `auth-session-bridge-${format}-${count}-${stamp}.json`;
 }

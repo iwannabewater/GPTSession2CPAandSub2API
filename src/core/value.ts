@@ -49,6 +49,13 @@ export function isoTimestamp(value: JsonValue | undefined): string | undefined {
   return Number.isNaN(date.getTime()) ? undefined : date.toISOString();
 }
 
+export function preservedTimestamp(value: JsonValue | undefined): string | undefined {
+  if (typeof value === 'string' && value.trim() !== '' && Number.isFinite(Date.parse(value))) {
+    return value.trim();
+  }
+  return isoTimestamp(value);
+}
+
 export function compactObject(entries: Record<string, JsonValue | undefined>): JsonObject {
   return Object.fromEntries(
     Object.entries(entries).filter((entry): entry is [string, JsonValue] => entry[1] !== undefined),

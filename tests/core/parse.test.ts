@@ -50,7 +50,33 @@ describe('parseCredentialText', () => {
       accountId: 'acct_axon',
       refreshToken: 'refresh.real',
       idToken: 'id.real.value',
-      lastRefresh: '2026-05-23T22:00:00.000Z',
+      lastRefresh: '2026-05-23T22:00:00Z',
+    });
+    expect(report.issues).toHaveLength(0);
+  });
+
+  it('identifies a Codex Auth document and retains its high precision refresh time', () => {
+    const report = parseCredentialText(
+      JSON.stringify({
+        auth_mode: 'chatgpt',
+        OPENAI_API_KEY: null,
+        tokens: {
+          id_token: 'fixture.id.signed',
+          access_token: 'fixture.access.invalid',
+          refresh_token: 'fixture.refresh.invalid',
+          account_id: 'acct_codex_fixture',
+        },
+        last_refresh: '2026-05-23T17:32:21.088674585Z',
+      }),
+    );
+
+    expect(report.credentials[0]).toMatchObject({
+      sourceKind: 'codex-auth',
+      idToken: 'fixture.id.signed',
+      accessToken: 'fixture.access.invalid',
+      refreshToken: 'fixture.refresh.invalid',
+      accountId: 'acct_codex_fixture',
+      lastRefresh: '2026-05-23T17:32:21.088674585Z',
     });
     expect(report.issues).toHaveLength(0);
   });

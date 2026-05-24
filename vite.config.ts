@@ -1,6 +1,6 @@
 import { defineConfig } from 'vitest/config';
 
-const repositoryBase = process.env.GITHUB_ACTIONS ? '/GPTSession2CPAandSub2API/' : '/';
+const repositoryBase = process.env.GITHUB_ACTIONS ? '/auth-session-bridge/' : '/';
 
 export default defineConfig({
   base: repositoryBase,
